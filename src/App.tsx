@@ -1,12 +1,9 @@
 import './App.sass'
 import { auth, login, logout } from './firebase.ts'
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { useEffect } from 'react';
 
 
 function Login () {
-    const [user, loading, error] = useAuthState(auth);
-
     return (
         <div className="login">
             <h1>Game Battle</h1>
@@ -16,12 +13,15 @@ function Login () {
 }
 
 function NavBar () {
-    const [user, loading, error] = useAuthState(auth);
+    const user = useAuthState(auth)[0];
 
     return (
         <div className="navbar">
             <h1>Game Battle</h1>
-            <button onClick={logout}>Log out</button>
+            <button onClick={logout}>
+                <img src={user?.photoURL} alt="user" />
+                Log out
+            </button>
         </div>
     );
 }
@@ -35,8 +35,6 @@ function Game () {
 }
 
 function MainPage () {
-    const [user, loading, error] = useAuthState(auth);
-
     return (
         <>
             <NavBar />
@@ -51,7 +49,7 @@ function MainPage () {
 }
 
 function App() {
-    const [user, loading, error] = useAuthState(auth);
+    const user = useAuthState(auth)[0];
 
     return (
         <div className="app">
