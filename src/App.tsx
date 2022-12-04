@@ -157,7 +157,7 @@ function NewGameButton ({ session, setGame }) {
     );
 }
 
-const startGame = async (setGame) => {
+const startGame = async (setGame, session) => {
     const API_URL = process.env.REACT_APP_API_URL;
 
     const game = await fetch(`${API_URL}/sessions/${session}/games`, {
@@ -178,7 +178,7 @@ function Game ({ session }) {
 
     useEffect(() => {
         if (session) {
-            startGame(setGame);
+            startGame(setGame, session);
         }
     }, [session]);
 
