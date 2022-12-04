@@ -12,7 +12,7 @@ jobs:
       - run: yarn
       - run: yarn build
         env:
-            REACT_APP_API_URL = '${{ secrets.API_URL }}'
+            REACT_APP_API_URL: '${{ secrets.API_URL }}'
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
