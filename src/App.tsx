@@ -13,6 +13,11 @@ import MenuItem from '@mui/material/MenuItem';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 
+const headers = {
+    'Content-Type': 'application/json',
+    'ngrok-skip-browser-warning': 'true'
+}
+
 const darkTheme = createTheme({
   palette: {
     mode: 'dark',
@@ -55,10 +60,10 @@ function NavBar () {
 const dropdown_loadGames = async (setGames, setSelectedGame, setLoading, session, game) => {
     const API_URL = process.env.REACT_APP_API_URL;
 
-    const games_raw = await fetch(`${API_URL}/sessions/${session}/games`);
+    const games_raw = await fetch(`${API_URL}/sessions/${session}/games`, { headers });
     const games = await games_raw.json();
     const games_data = await Promise.all(games.games.map(async (game) => {
-        const game_raw = await fetch(`${API_URL}/sessions/${session}/games/${game}`);
+        const game_raw = await fetch(`${API_URL}/sessions/${session}/games/${game}`, { headers });
         const game_data = await game_raw.json();
         game_data.id = game;
         return game_data;
@@ -110,7 +115,7 @@ function GameSelection ({ session, game, setGame }) {
 const newgame_loadGames = async (setGames, session) => {
     const API_URL = process.env.REACT_APP_API_URL;
 
-    const games_raw = await fetch(`${API_URL}/sessions/${session}/games`);
+    const games_raw = await fetch(`${API_URL}/sessions/${session}/games`, { headers });
     const games = await games_raw.json();
     setGames(games.games);
 };
@@ -135,9 +140,7 @@ function NewGameButton ({ session, setGame }) {
 
         const game_raw = await fetch(`${API_URL}/sessions/${session}/games`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
+            headers,
         });
         const game = await game_raw.json();
         setGame(game);
@@ -159,9 +162,7 @@ const startGame = async (setGame) => {
 
     const game = await fetch(`${API_URL}/sessions/${session}/games`, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({}),
     }).then((res) => res.json());
     setGame(game);
@@ -184,9 +185,7 @@ function Game ({ session }) {
     useInterval(async () => {
         const game_data = await fetch(`${API_URL}/sessions/${session}/games/${game["id"]}`, {
             method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers,
         }).then((res) => res.json());
         setOutput(game_data.output ? game_data.output.whole : "");
         setDone(game_data.output && game_data.output.done);
@@ -195,9 +194,7 @@ function Game ({ session }) {
     const sendText = async (text) => {
         await fetch(`${API_URL}/sessions/${session}/games/${game["id"]}`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers,
             body: JSON.stringify({ text }),
         });
     };
@@ -205,9 +202,7 @@ function Game ({ session }) {
     const killGame = async () => {
         await fetch(`${API_URL}/sessions/${session}/games/${game["id"]}`, {
             method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers,
         });
         setGame(null);
         setOutput("");
@@ -216,9 +211,7 @@ function Game ({ session }) {
     const restartGame = async () => {
         await fetch(`${API_URL}/sessions/${session}/games/${game["id"]}/restart`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers,
         });
     };
 
@@ -278,9 +271,7 @@ function MainPage () {
             const token = await user.getIdToken();
             const session_raw = await fetch(`${API_URL}/sessions`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers,
                 body: JSON.stringify({ token }),
             });
             const session = await session_raw.json();
