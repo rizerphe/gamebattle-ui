@@ -52,42 +52,47 @@ function NavBar () {
     );
 }
 
+const dropdown_loadGames = async (setGames, setSelectedGame, setLoading, session, game) => {
+    const API_URL = process.env.REACT_APP_API_URL;
+
+    const games_raw = await fetch(`${API_URL}/sessions/${session}/games`);
+    const games = await games_raw.json();
+    const games_data = await Promise.all(games.games.map(async (game) => {
+        const game_raw = await fetch(`${API_URL}/sessions/${session}/games/${game}`);
+        const game_data = await game_raw.json();
+        game_data.id = game;
+        return game_data;
+    }));
+    const selected = games_data.find((game_d) => game_d.id === game);
+    setSelectedGame(selected || null);
+    setGames(games_data);
+    setLoading(false);
+};
+
 function GameSelection ({ session, game, setGame }) {
     const [games, setGames] = useState([]);
     const [selectedGame, setSelectedGame] = useState(game);
     const [loading, setLoading] = useState(true);
-    const API_URL = process.env.REACT_APP_API_URL;
-
-    const loadGames = async () => {
-        const games_raw = await fetch(`${API_URL}/sessions/${session}/games`);
-        const games = await games_raw.json();
-        const games_data = await Promise.all(games.games.map(async (game) => {
-            const game_raw = await fetch(`${API_URL}/sessions/${session}/games/${game}`);
-            const game_data = await game_raw.json();
-            game_data.id = game;
-            return game_data;
-        }));
-        const selected = games_data.find((game_d) => game_d.id === game);
-        setSelectedGame(selected || null);
-        setGames(games_data);
-        setLoading(false);
-    };
 
     useEffect(() => {
         if (session) {
-            loadGames();
+            dropdown_loadGames(setGames, setSelectedGame, setLoading, session, game);
         }
-    }, [session]);
+    }, [session, game]);
 
     useInterval(() => {
         if (session) {
-            loadGames();
+            dropdown_loadGames(setGames, setSelectedGame, setLoading, session, game);
         }
     }, 2000);
         
 
     const transformGame = (game) => (game && { value: game.id, label: `${game.data && game.data.name} - ${moment.unix(game.start_time).fromNow()}`})
-    return (
+    return loading ? (
+        <div className="game-selection">
+            <h2>Loading...</h2>
+        </div>
+    ) : (
         <div className="game-selection">
             <Select
                 value={selectedGame && selectedGame.id}
@@ -102,29 +107,32 @@ function GameSelection ({ session, game, setGame }) {
     );
 }
 
-function NewGameButton ({ session, setGame }) {
+const newgame_loadGames = async (setGames, session) => {
     const API_URL = process.env.REACT_APP_API_URL;
-    const [games, setGames] = useState([]);
 
-    const loadGames = async () => {
-        const games_raw = await fetch(`${API_URL}/sessions/${session}/games`);
-        const games = await games_raw.json();
-        setGames(games.games);
-    };
+    const games_raw = await fetch(`${API_URL}/sessions/${session}/games`);
+    const games = await games_raw.json();
+    setGames(games.games);
+};
+
+function NewGameButton ({ session, setGame }) {
+    const [games, setGames] = useState([]);
 
     useEffect(() => {
         if (session) {
-            loadGames();
+            newgame_loadGames(setGames, session);
         }
     }, [session]);
 
     useInterval(() => {
         if (session) {
-            loadGames();
+            newgame_loadGames(setGames, session);
         }
     }, 2000);
 
     const createGame = async () => {
+        const API_URL = process.env.REACT_APP_API_URL;
+
         const game_raw = await fetch(`${API_URL}/sessions/${session}/games`, {
             method: 'POST',
             headers: {
@@ -146,36 +154,32 @@ function NewGameButton ({ session, setGame }) {
     );
 }
 
+const startGame = async (setGame) => {
+    const API_URL = process.env.REACT_APP_API_URL;
+
+    const game = await fetch(`${API_URL}/sessions/${session}/games`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
+    }).then((res) => res.json());
+    setGame(game);
+};
+
 function Game ({ session }) {
     const [game, setGame] = useState(null);
     const [output, setOutput] = useState("");
     const [input, setInput] = useState("");
-    const [error, setError] = useState(null);
     const [done, setDone] = useState(false);
     const ref = useRef(null);
     const API_URL = process.env.REACT_APP_API_URL;
 
-    const startGame = async () => {
-        const game = await fetch(`${API_URL}/sessions/${session}/games`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({}),
-        }).then((res) => res.json());
-        if (game.error) {
-            setError(game.message);
-        }
-        else {
-            setGame(game);
-        };
-    };
-
     useEffect(() => {
         if (session) {
-            startGame();
+            startGame(setGame);
         }
-    }, [session, API_URL]);
+    }, [session]);
 
     useInterval(async () => {
         const game_data = await fetch(`${API_URL}/sessions/${session}/games/${game["id"]}`, {
@@ -265,7 +269,7 @@ function Game ({ session }) {
 }
 
 function MainPage () {
-    const [user, loading, error] = useAuthState(auth);
+    const [user, loading] = useAuthState(auth);
     const [session, setSession] = useState(null);
     const API_URL = process.env.REACT_APP_API_URL;
 
@@ -283,7 +287,7 @@ function MainPage () {
             setSession(session["session"]);
         };
         getGame();
-    }, [loading && user, API_URL]);
+    }, [loading, user, API_URL]);
 
     return (
         <>
