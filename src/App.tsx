@@ -264,6 +264,7 @@ function Game ({ session }) {
 function MainPage () {
     const [user, loading] = useAuthState(auth);
     const [session, setSession] = useState(null);
+    const [error, setError] = useState(null);
     const API_URL = process.env.REACT_APP_API_URL;
 
     useEffect(() => {
@@ -275,7 +276,12 @@ function MainPage () {
                 body: JSON.stringify({ token }),
             });
             const session = await session_raw.json();
-            setSession(session["session"]);
+            if (session_raw.status === 200) {
+                setSession(session["session"]);
+            } else {
+                setSession(null);
+                setError(session["error"]);
+            }
         };
         getGame();
     }, [loading, user, API_URL]);
@@ -284,10 +290,17 @@ function MainPage () {
         <>
             <NavBar />
             <div className="main">
-                <div className="games">
-                    <Game session={session} />
-                    <Game session={session} />
-                </div>
+                {error ? (
+                    <div className="error">
+                        {error}
+                        <button onClick={logout}>Logout</button>
+                    </div>
+                ) : (
+                    <div className="games">
+                        <Game session={session} />
+                        <Game session={session} />
+                    </div>
+                )}
             </div>
         </>
     );
