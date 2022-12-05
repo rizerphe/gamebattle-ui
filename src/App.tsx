@@ -15,7 +15,8 @@ import CssBaseline from '@mui/material/CssBaseline';
 
 const headers = {
     'Content-Type': 'application/json',
-    'ngrok-skip-browser-warning': 'true'
+    'ngrok-skip-browser-warning': 'true',
+    'Bypass-Tunnel-Reminder': 'true'
 }
 
 const darkTheme = createTheme({
