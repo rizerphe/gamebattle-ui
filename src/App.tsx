@@ -12,6 +12,9 @@ import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
+import ReactAnsi from 'react-ansi'
+import Switch from '@mui/material/Switch';
+import FormControlLabel from '@mui/material/FormControlLabel';
 
 const headers = {
     'Content-Type': 'application/json',
@@ -174,7 +177,8 @@ function Game ({ session }) {
     const [output, setOutput] = useState("");
     const [input, setInput] = useState("");
     const [done, setDone] = useState(false);
-    const ref = useRef(null);
+    const [ansi_mode, setAnsiMode] = useState(false);
+    const input_ref = useRef(null);
     const API_URL = process.env.REACT_APP_API_URL;
 
     useEffect(() => {
@@ -216,10 +220,22 @@ function Game ({ session }) {
         });
     };
 
+    useEffect(() => {
+        if (ansi_mode) {
+            input_ref.current.scrollIntoView({ behavior: "smooth" });
+        }
+    }, [output, ansi_mode]);
+
     return (
         <div className="game">
             <div className="game-nav">
-                <GameSelection session={session} game={game && game.id} setGame={setGame} />
+                <div className="nav-left">
+                    <GameSelection session={session} game={game && game.id} setGame={setGame} />
+                    <FormControlLabel
+                        control={<Switch checked={ansi_mode} onChange={() => setAnsiMode(!ansi_mode)} />}
+                        label="ANSI Mode"
+                    />
+                </div>
                 <Fab aria-label="restart" onClick={restartGame} color="primary">
                     <RefreshIcon />
                 </Fab>
@@ -228,8 +244,32 @@ function Game ({ session }) {
                     <DeleteIcon />
                 </Fab>
             </div>
-            <div className="output">
-            {output.split("\n").map((line, i) => (
+            <div className={`output ${ansi_mode ? "ansi" : ""}`}>
+            {ansi_mode ? (
+                <>
+                    <ReactAnsi
+                        log={output}
+                        bodyStyle={{
+                            backgroundColor: "transparent",
+                        }}
+                        autoScroll
+                    />
+                    <input
+                        value={input}
+                        type="text"
+                        className="input"
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                                sendText(input + "\n");
+                                setInput("");
+                            }
+                        }}
+                        onChange={(e) => {setInput(e.target.value);}}
+                        ref={input_ref}
+                        autoFocus={input_ref.current === document.activeElement}
+                    />
+                </>
+            ) : output.split("\n").map((line, i) => (
                 <div key={i} className="line">
                     {line}
                     {i === output.split("\n").length - 1 && (!done) && (
@@ -244,8 +284,8 @@ function Game ({ session }) {
                                 }
                             }}
                             onChange={(e) => {setInput(e.target.value);}}
-                            ref={ref}
-                            autoFocus={ref.current === document.activeElement}
+                            ref={input_ref}
+                            autoFocus={input_ref.current === document.activeElement}
                         />
                     )}
                 </div>

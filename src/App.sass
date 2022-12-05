@@ -95,7 +95,7 @@
                 align-items: center
                 justify-content: space-between
 
-                .game-selection
+                .nav-left
                     margin-right: auto
 
                 .tooltip
@@ -111,15 +111,38 @@
                 border: solid #3b4252 1px
                 padding: 1rem
                 box-sizing: border-box
-
+                
                 .line
                     width: 100%
                     white-space: pre-wrap
                     font-family: 'Fira Code', 'Noto Color Emoji', monospace
                     white-space: pre-wrap
 
+                .input
+                    background: transparent
+                    outline: none
+                    border: none
+                    font-family: 'Fira Code', monospace
+
+                &.ansi
+                    >div
+                        width: 100%
+
+                        >div
+                            background-color: transparent
+
+                            >a
+                                display: none
+
+                            >pre
+                                font-family: 'Fira Code', 'Noto Color Emoji', monospace
+
+                                >div >div:hover
+                                    background-color: transparent !important
+
                     .input
-                        background: transparent
-                        outline: none
-                        border: none
-                        font-family: 'Fira Code', monospace
+                        display: block
+                        width: 100%
+                        outline: solid #3b4252 1px
+                        position: relative
+                        z-index: 1
