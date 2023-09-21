@@ -44,7 +44,7 @@ function GameText({
 
   return (
     <div
-      className="p-4 flex flex-col whitespace-pre-wrap min-h-full max-h-screen overflow-y-scroll"
+      className="p-4 flex flex-col whitespace-pre-wrap max-h-screen overflow-y-scroll"
       onClick={() => (input_ref?.current as any)?.focus?.()}
     >
       {ansi}
