@@ -22,7 +22,7 @@ export default function SessionDeleteButton({
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${await user.getIdToken()}`,
+        Authorization: `Bearer ${await user?.getIdToken?.()}`,
       },
     });
     if (!res.ok) {

@@ -35,7 +35,7 @@ function GameText({
 
   if (input_ref.current === document.activeElement) {
     setTimeout(() => {
-      input_ref.current.scrollIntoView({
+      (input_ref.current as any)?.scrollIntoView?.({
         block: "end",
         inline: "nearest",
       });
@@ -45,7 +45,7 @@ function GameText({
   return (
     <div
       className="p-4 flex flex-col whitespace-pre-wrap min-h-full max-h-screen overflow-y-scroll"
-      onClick={() => input_ref.current.focus()}
+      onClick={() => (input_ref?.current as any)?.focus?.()}
     >
       {ansi}
     </div>
@@ -71,13 +71,11 @@ export default function Game({
       reconnectAttempts: 10,
       reconnectInterval: 1000,
       onOpen: () => {
-        sendMessage(idToken);
+        idToken && sendMessage(idToken);
+        setOutput("");
       },
       onMessage: (e: any) => {
         setOutput((output) => output + e.data);
-      },
-      onReconnect: () => {
-        setOutput("");
       },
     },
     idToken ? true : false
