@@ -42,7 +42,7 @@ export default function Games({
   return session ? (
     <>
       {session.games.map((name: string, game: number) => (
-        <GameContainer name={name}>
+        <GameContainer name={name} key={game}>
           <Game api_route={api_ws_route} session_id={session_id} game={game} />
         </GameContainer>
       ))}
