@@ -1,0 +1,31 @@
+{
+  "name": "gamebattle-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@types/node": "20.6.2",
+    "@types/react": "18.2.22",
+    "@types/react-dom": "18.2.7",
+    "ansi-to-react": "^6.1.6",
+    "autoprefixer": "10.4.15",
+    "encoding": "^0.1.13",
+    "eslint": "8.49.0",
+    "eslint-config-next": "13.4.19",
+    "firebase": "^10.4.0",
+    "moment": "^2.29.4",
+    "next": "canary",
+    "postcss": "8.4.30",
+    "react-firebase-hooks": "^5.1.1",
+    "react-icons": "^4.11.0",
+    "react-use-websocket": "^4.4.0",
+    "tailwindcss": "3.3.3",
+    "typescript": "5.2.2",
+    "zod": "^3.22.2"
+  }
+}
