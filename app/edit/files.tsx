@@ -419,7 +419,7 @@ export default function FileBrowser({
         />
       </div>
       <FileBrowserContent
-        files={files.concat(
+        files={(files as { path: string; content: string | null }[]).concat(
           created_folders.map((folder) => ({
             path: folder,
             content: null,
