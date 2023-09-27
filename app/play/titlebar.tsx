@@ -1,10 +1,9 @@
 "use client";
-import { auth } from "../../firebase";
+import moment from "moment";
+import { auth } from "../firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { useEffect, useState } from "react";
 import { z } from "zod";
-import GameContainer from "./game_container";
-import Game from "./game";
 
 const Session = z.object({
   launch_time: z.number(),
@@ -13,13 +12,11 @@ const Session = z.object({
 
 type Session = z.infer<typeof Session>;
 
-export default function Games({
+export default function TitleBar({
   api_route,
-  api_ws_route,
   session_id,
 }: {
   api_route: string;
-  api_ws_route: string;
   session_id: string;
 }) {
   const [user] = useAuthState(auth);
@@ -40,17 +37,12 @@ export default function Games({
   }, [user?.uid, api_route, session_id]);
 
   return session ? (
-    <>
-      {session.games.map((name: string, game: number) => (
-        <GameContainer name={name} key={game}>
-          <Game api_route={api_ws_route} session_id={session_id} game={game} />
-        </GameContainer>
-      ))}
-    </>
+    <span>
+      {`${session.games.join(", ")} - ${moment
+        .unix(session.launch_time)
+        .fromNow()}`}
+    </span>
   ) : (
-    <>
-      <GameContainer name="Loading..." />
-      <GameContainer name="Loading..." />
-    </>
+    <span>Loading...</span>
   );
 }

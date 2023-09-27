@@ -1,5 +1,5 @@
 "use client";
-import { auth } from "../../firebase";
+import { auth } from "../firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { useEffect, useRef, useState } from "react";
 import useWebSocket, { ReadyState } from "react-use-websocket";
@@ -44,7 +44,10 @@ function GameText({
 
   return (
     <div
-      className="p-4 flex flex-col whitespace-pre-wrap max-h-screen overflow-y-scroll"
+      className="p-4 flex flex-col whitespace-pre-wrap overflow-y-scroll"
+      style={{
+        maxHeight: "calc(100vh - 16rem)",
+      }}
       onClick={() => (input_ref?.current as any)?.focus?.()}
     >
       {ansi}
@@ -64,7 +67,7 @@ export default function Game({
   const [user] = useAuthState(auth);
   const [output, setOutput] = useState<string>("");
   const [idToken, setIdToken] = useState<string | null>(null);
-  const { sendMessage, readyState } = useWebSocket(
+  const { sendMessage } = useWebSocket(
     `${api_route}/sessions/${session_id}/${game}/ws`,
     {
       shouldReconnect: () => true,

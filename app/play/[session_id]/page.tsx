@@ -1,9 +1,9 @@
 import { Suspense } from "react";
-import Games from "./games";
-import GamesPlaceholder from "./games_placeholder";
-import TitleBar from "./titlebar";
+import Games from "../games";
+import GamesPlaceholder from "../games_placeholder";
+import TitleBar from "../titlebar";
 import { FaTrash } from "react-icons/fa";
-import SessionDeleteButton from "./session_delete";
+import SessionDeleteButton from "../session_delete";
 
 export default function Play({
   params: { session_id },

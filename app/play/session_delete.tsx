@@ -1,5 +1,5 @@
 "use client";
-import { auth } from "../../firebase";
+import { auth } from "../firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { useState } from "react";
 import { redirect } from "next/navigation";

@@ -24,6 +24,7 @@ export default function PlayWindow() {
       <span className="font-bold text-xl">GameBattle</span>
       <Button href="/play">Play</Button>
       <Button href="/leaderboard">Leaderboard</Button>
+      <Button href="/edit">Create</Button>
     </Window>
   ) : (
     <Window>
