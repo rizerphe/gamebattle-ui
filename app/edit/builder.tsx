@@ -98,7 +98,9 @@ export default function Builder({
             isLoading={isLoading}
             isClearable={false}
             isSearchable={true}
-            options={files.filter((file) => file.path.endsWith(".py"))}
+            options={files.filter(
+              (file) => file.path.endsWith(".py") && !file.path.includes(" ")
+            )}
           />
         </div>
         <div
