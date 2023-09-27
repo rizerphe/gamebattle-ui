@@ -110,6 +110,7 @@ function EditorTabs({
     <div className="flex flex-row items-stretch bg-zinc-950">
       {modified_files_with_open_file.map((file) => (
         <EditorTab
+          key={file}
           file={file}
           open_file={open_file}
           on_file_open={on_file_open}
@@ -164,7 +165,7 @@ function EditorTabs({
             Do you want to save the changes you made to {confirmation_file}?
           </span>
           <span className="text-center">
-            Your changes will be lost if you don't save them.
+            Your changes will be lost if you don&apos;t save them.
           </span>
           <div className="flex flex-row justify-stretch rounded overflow-hidden">
             <button
@@ -177,7 +178,7 @@ function EditorTabs({
                 setConfirmation(false);
               }}
             >
-              Don't Save
+              Don&apos;t Save
             </button>
             <button
               className="bg-zinc-700 hover:bg-zinc-600 text-white font-bold py-2 px-4 flex-1 border-zinc-700 border-2"
