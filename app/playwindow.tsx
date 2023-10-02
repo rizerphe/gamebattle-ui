@@ -2,6 +2,7 @@
 import { auth, login } from "./firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 import Button from "./button";
+import Image from "next/image";
 
 function Window({
   title = "GameBattle",
@@ -11,9 +12,14 @@ function Window({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-stretch gap-4 rounded-md bg-gray-900 p-4 min-w-[30rem]">
-      <span className="font-bold text-2xl">{title}</span>
-      <div className="flex flex-col items-stretch gap-2">{children}</div>
+    <div className="flex flex-col items-stretch gap-8 p-8 min-w-[50rem] bg-black bg-opacity-90">
+      <span className="font-bold text-4xl flex flex-row items-center justify-start gap-2">
+        <Image src="/logo.png" width={40} height={40} alt="logo" />
+        {title}
+      </span>
+      <div className="flex flex-col items-stretch gap-4 text-2xl">
+        {children}
+      </div>
     </div>
   );
 }
@@ -27,17 +33,16 @@ export default function PlayWindow({ disabled }: { disabled?: boolean }) {
     </Window>
   ) : user ? (
     <Window>
+      <Button href="/edit">Create</Button>
       <Button disabled={disabled} href="/play">
         Play
       </Button>
       <Button disabled={disabled} href="/leaderboard">
         Leaderboard
       </Button>
-      <Button href="/edit">Create</Button>
     </Window>
   ) : (
     <Window>
-      <span className="text-gray-400">Log in to play</span>
       <Button onClick={() => login()}>Log In with Google</Button>
     </Window>
   );

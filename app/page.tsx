@@ -1,9 +1,13 @@
 import PlayWindow from "./playwindow";
+import YourStats from "./your_stats";
 
 export default function Home() {
   return (
     <div className="flex flex-col items-center justify-center flex-1 py-2">
-      <PlayWindow disabled />
+      <div className="flex flex-row items-stretch justify-between gap-0 rounded-md shadow-md shadow-black overflow-hidden">
+        <PlayWindow disabled />
+        <YourStats />
+      </div>
     </div>
   );
 }

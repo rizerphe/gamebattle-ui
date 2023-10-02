@@ -18,7 +18,7 @@ function GameText({
   const ansi = Ansi({ children: content });
   ansi.props.children.push(
     <input
-      className="bg-gray-800 text-white p-1 outline-none m-0"
+      className="bg-transparent text-white p-1 outline-none m-0"
       type="text"
       value={input}
       onChange={(e) => setInput(e.target.value)}

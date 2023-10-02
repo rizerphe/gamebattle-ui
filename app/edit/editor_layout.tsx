@@ -77,7 +77,7 @@ export default function EditorLayout({ api_route }: { api_route: string }) {
   };
 
   return (
-    <div className="flex flex-row items-stretch flex-1 w-full rounded overflow-hidden">
+    <div className="flex flex-row items-stretch flex-1 w-full rounded-md overflow-hidden shadow-md shadow-black">
       <div className="flex flex-col items-stretch gap-2 bg-zinc-800 p-0 min-w-[16rem]">
         <Builder
           files={files}
