@@ -2,7 +2,7 @@
 import { auth } from "../firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { useEffect, useRef, useState } from "react";
-import useWebSocket, { ReadyState } from "react-use-websocket";
+import useWebSocket from "react-use-websocket";
 import Ansi from "ansi-to-react";
 
 function GameText({
@@ -59,10 +59,12 @@ export default function Game({
   api_route,
   session_id,
   game,
+  setConnected,
 }: {
   api_route: string;
   session_id: string;
   game: number;
+  setConnected: (connected: boolean) => void;
 }) {
   const [user] = useAuthState(auth);
   const [output, setOutput] = useState<string>("");
@@ -76,6 +78,10 @@ export default function Game({
       onOpen: () => {
         idToken && sendMessage(idToken);
         setOutput("");
+        setConnected(true);
+      },
+      onClose: () => {
+        setConnected(false);
       },
       onMessage: (e: any) => {
         setOutput((output) => output + e.data);

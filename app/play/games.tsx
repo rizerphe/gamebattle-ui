@@ -28,6 +28,7 @@ export default function Games({
 }) {
   const [user] = useAuthState(auth);
   const [session, setSession] = useState<Session | null>(null);
+  const [connected, setConnected] = useState<boolean>(false);
 
   useEffect(() => {
     if (!user) return;
@@ -46,8 +47,24 @@ export default function Games({
   return session ? (
     <>
       {session.games.map((name: string, game: number) => (
-        <GameContainer name={name} tooling={tooling} key={game}>
-          <Game api_route={api_ws_route} session_id={session_id} game={game} />
+        <GameContainer
+          name={name}
+          tooling={
+            <>
+              {connected ? null : (
+                <span className="font-bold text-red-600">connecting...</span>
+              )}
+              {tooling}
+            </>
+          }
+          key={game}
+        >
+          <Game
+            api_route={api_ws_route}
+            session_id={session_id}
+            game={game}
+            setConnected={setConnected}
+          />
         </GameContainer>
       ))}
     </>
