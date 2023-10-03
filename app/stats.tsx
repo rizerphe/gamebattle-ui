@@ -4,11 +4,16 @@ import { auth } from "./firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 
 export default function Stats({ api_route }: { api_route: string }) {
-  const [stats, setStats] = useState(null);
+  const [stats, setStats] = useState({
+    loading: true,
+    stats: null,
+  });
   const [user, loading] = useAuthState(auth);
 
   useEffect(() => {
     const fetchStats = async () => {
+      if (!user?.uid) return;
+      setStats({ loading: true, stats: null });
       const response = await fetch(api_route + "/stats", {
         method: "GET",
         headers: {
@@ -18,17 +23,17 @@ export default function Stats({ api_route }: { api_route: string }) {
       });
       if (response.status === 200) {
         const json = await response.json();
-        setStats(json);
+        setStats({ loading: false, stats: json });
       } else {
-        setStats(null);
+        setStats({ loading: false, stats: null });
       }
     };
     fetchStats();
   }, [api_route, user?.uid]);
 
-  return loading ? (
+  return loading || stats.loading ? (
     <span className="font-bold text-red-800">Loading...</span>
-  ) : stats ? (
+  ) : stats.stats ? (
     <span className="font-bold text-red-800">Competition not yet started.</span>
   ) : (
     <div className="font-bold text-red-800 flex flex-col gap-2">
