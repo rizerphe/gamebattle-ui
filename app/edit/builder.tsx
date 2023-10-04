@@ -47,6 +47,8 @@ export default function Builder({
     })();
   }, [user]);
 
+  const validate_name = (name?: string) => name;
+
   return built ? (
     redirect("/play/own/" + built)
   ) : (
@@ -58,7 +60,11 @@ export default function Builder({
         <div className="flex flex-row items-center gap-2 justify-between">
           <span>Name:</span>
           <input
-            className="px-2 py-1 bg-zinc-700 rounded flex-1"
+            className={`px-2 py-1 bg-zinc-700 rounded flex-1 ${
+              validate_name(metadata?.name)
+                ? ""
+                : "outline outline-2 outline-red-600"
+            }`}
             value={metadata?.name}
             onChange={(e) => setMetadata({ ...metadata, name: e.target.value })}
           />
@@ -105,12 +111,16 @@ export default function Builder({
         </div>
         <div
           className={`flex flex-row items-center justify-center gap-2 p-2 rounded ${
-            modified_files.length
+            modified_files.length ||
+            !metadata.name ||
+            !files.find((file) => file.path === metadata?.file)
               ? "bg-zinc-700 hover:bg-zinc-600"
               : "bg-blue-700 hover:bg-blue-600"
           } cursor-pointer`}
           onClick={async () => {
             if (modified_files.length) return;
+            if (!metadata.name) return;
+            if (!files.find((file) => file.path === metadata?.file)) return;
             setBuilding(true);
             await fetch(`${api_route}/game/build`, {
               method: "POST",
