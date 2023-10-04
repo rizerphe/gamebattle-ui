@@ -72,7 +72,11 @@ export default function Builder({
         <div className="flex flex-row items-center gap-2 justify-between">
           <span>Entrypoint:</span>
           <Select
-            className="flex-1"
+            className={`flex-1 ${
+              files.find((file) => file.path === metadata?.file)
+                ? ""
+                : "outline outline-2 outline-red-600"
+            }`}
             value={files.find((file) => file.path === metadata?.file) ?? null}
             onChange={(option) => {
               if (!option?.path) return;
