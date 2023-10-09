@@ -92,7 +92,7 @@ export default function EditorLayout({ api_route }: { api_route: string }) {
           delete_file={delete_file}
         />
       </div>
-      <div className="flex flex-col flex-1">
+      <div className="flex flex-col flex-1 bg-zinc-950">
         <FileEditor
           files={files}
           save_file={save_file}
