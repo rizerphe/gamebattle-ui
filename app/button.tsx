@@ -14,13 +14,13 @@ export default function Button({
   return href && !disabled ? (
     <Link
       href={href}
-      className="bg-opacity-70 flex flex-row items-center justify-center rounded-md cursor-pointer p-4 font-bold bg-gray-500 hover:bg-gray-400 transition-all hover:scale-105"
+      className="bg-opacity-70 flex flex-row items-center justify-center rounded-md cursor-pointer p-4 font-bold bg-gray-500 hover:bg-gray-400 transition-all hover:scale-105 relative overflow-visible"
     >
       {children}
     </Link>
   ) : (
     <span
-      className={`bg-opacity-70 flex flex-row items-center justify-center rounded-md cursor-pointer p-4 font-bold transition-all ${
+      className={`bg-opacity-70 flex flex-row items-center justify-center rounded-md cursor-pointer p-4 font-bold transition-all relative overflow-visible ${
         disabled
           ? "bg-gray-700 text-gray-500"
           : "bg-gray-500 hover:bg-gray-400 hover:scale-105"
