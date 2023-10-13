@@ -215,16 +215,19 @@ function UploadPlaceholder({
 }: {
   save_file: (path: string, content: string) => void;
 }) {
-  const [, native_drop] = useDrop(() => ({
-    accept: [NativeTypes.FILE],
-    drop(item: any) {
-      for (const file of item.files) {
-        file.text().then((text: string) => {
-          save_file(file.name, text);
-        });
-      }
-    },
-  }));
+  const [, native_drop] = useDrop(
+    () => ({
+      accept: [NativeTypes.FILE],
+      drop(item: any) {
+        for (const file of item.files) {
+          file.text().then((text: string) => {
+            save_file(file.name, text);
+          });
+        }
+      },
+    }),
+    [save_file]
+  );
 
   return (
     <div

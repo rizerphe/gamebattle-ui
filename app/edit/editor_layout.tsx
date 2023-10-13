@@ -35,14 +35,14 @@ export default function EditorLayout({ api_route }: { api_route: string }) {
   }, [user]);
 
   const save_file = async (path: string, content: string) => {
-    setFiles((files) => [
-      ...files.filter((file) => file.path !== path),
-      { path, content },
-    ]);
     if (!user) {
       console.error("User not logged in");
       return;
     }
+    setFiles((files) => [
+      ...files.filter((file) => file.path !== path),
+      { path, content },
+    ]);
     const response = await fetch(`${api_route}/game`, {
       method: "POST",
       headers: {
