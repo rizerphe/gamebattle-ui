@@ -7,6 +7,7 @@ import {
   VscChevronRight,
   VscNewFolder,
   VscNewFile,
+  VscTrash,
 } from "react-icons/vsc";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend, NativeTypes } from "react-dnd-html5-backend";
@@ -134,8 +135,27 @@ function File({
           autoFocus
         />
       ) : (
-        <span>{name.split("/").slice(-1)[0]}</span>
+        <>
+          <span>{name.split("/").slice(-1)[0]}</span>
+          <DeleteFileButton delete_file={delete_file} />
+        </>
       )}
+    </div>
+  );
+}
+
+function DeleteFileButton({ delete_file }: { delete_file: () => void }) {
+  return (
+    <div className="flex flex-row justify-end flex-1 cursor-pointer text-zinc-600 opacity-0 hover:opacity-100 transition-opacity">
+      <span
+        className="rounded-md p-1 hover:bg-zinc-950"
+        onClick={(e) => {
+          e.stopPropagation();
+          delete_file();
+        }}
+      >
+        <VscTrash />
+      </span>
     </div>
   );
 }

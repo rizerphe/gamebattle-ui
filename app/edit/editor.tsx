@@ -4,7 +4,7 @@ import Editor from "@monaco-editor/react";
 import { VscChromeClose, VscCircleFilled } from "react-icons/vsc";
 import Modal from "react-modal";
 import { getMaterialFileIcon } from "file-extension-icon-js";
-import { DndProvider, useDrag, useDrop } from "react-dnd";
+import { DndProvider, useDrop } from "react-dnd";
 import { HTML5Backend, NativeTypes } from "react-dnd-html5-backend";
 import { VscCloudUpload } from "react-icons/vsc";
 
