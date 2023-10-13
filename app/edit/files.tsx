@@ -88,7 +88,7 @@ function File({
         }
       },
     }),
-    [name]
+    [name, save_file]
   );
 
   return (
