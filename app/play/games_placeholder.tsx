@@ -10,7 +10,9 @@ export default function GamesPlaceholder({
   return (
     <>
       {Array.from(Array(n_games).keys()).map((i) => (
-        <GameContainer key={i} name="Loading..." tooling={tooling} />
+        <div className="flex flex-col flex-1 bg-black bg-opacity-90 rounded-lg items-stretch">
+          <GameContainer key={i} name="Loading..." tooling={tooling} />
+        </div>
       ))}
     </>
   );

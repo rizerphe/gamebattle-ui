@@ -8,11 +8,12 @@ import Ansi from "ansi-to-react";
 function GameText({
   content,
   send,
+  inputRef,
 }: {
   content: string;
   send: (input: string) => void;
+  inputRef?: React.RefObject<HTMLInputElement>;
 }) {
-  const input_ref = useRef(null);
   const [input, setInput] = useState<string>("");
 
   const ansi = Ansi({ children: content });
@@ -28,14 +29,14 @@ function GameText({
           setInput("");
         }
       }}
-      ref={input_ref}
-      autoFocus={input_ref.current === document.activeElement}
+      ref={inputRef}
+      autoFocus={inputRef?.current === document.activeElement}
     />
   );
 
-  if (input_ref.current === document.activeElement) {
+  if (inputRef?.current === document.activeElement) {
     setTimeout(() => {
-      (input_ref.current as any)?.scrollIntoView?.({
+      inputRef?.current?.scrollIntoView?.({
         block: "end",
         inline: "nearest",
       });
@@ -48,7 +49,7 @@ function GameText({
       style={{
         maxHeight: "calc(100vh - 16rem)",
       }}
-      onClick={() => (input_ref?.current as any)?.focus?.()}
+      onClick={() => inputRef?.current?.focus?.()}
     >
       {ansi}
     </div>
@@ -60,11 +61,13 @@ export default function Game({
   session_id,
   game,
   setConnected,
+  inputRef,
 }: {
   api_route: string;
   session_id: string;
   game: number;
   setConnected: (connected: boolean) => void;
+  inputRef?: React.RefObject<HTMLInputElement>;
 }) {
   const [user] = useAuthState(auth);
   const [output, setOutput] = useState<string>("");
@@ -96,6 +99,10 @@ export default function Game({
   }, [user?.uid]);
 
   return (
-    <GameText content={output} send={(input: string) => sendMessage(input)} />
+    <GameText
+      content={output}
+      send={(input: string) => sendMessage(input)}
+      inputRef={inputRef}
+    />
   );
 }
