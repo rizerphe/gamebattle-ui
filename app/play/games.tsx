@@ -83,6 +83,7 @@ export default function Games({
     <>
       {session.games.map((name: string, game: number) => (
         <GameBox
+          key={game}
           name={name}
           api_ws_route={api_ws_route}
           session_id={session_id}
@@ -102,8 +103,11 @@ export default function Games({
   ) : (
     <>
       {Array.from(Array(n_placeholder_games).keys()).map((i) => (
-        <div className="flex flex-col flex-1 bg-black bg-opacity-90 rounded-lg items-stretch">
-          <GameContainer key={i} tooling={tooling} name="Loading..." />
+        <div
+          key={i}
+          className="flex flex-col flex-1 bg-black bg-opacity-90 rounded-lg items-stretch"
+        >
+          <GameContainer tooling={tooling} name="Loading..." />
         </div>
       ))}
     </>
