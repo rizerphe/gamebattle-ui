@@ -235,14 +235,31 @@ function UploadPlaceholder({
 
   return (
     <div
-      className="flex flex-col items-center justify-center flex-grow bg-zinc-950"
+      className="flex flex-col gap-2 items-center justify-center flex-grow bg-zinc-950"
       ref={native_drop}
     >
       <span className="text-2xl font-bold text-zinc-50">No file selected</span>
       <VscCloudUpload className="text-6xl text-zinc-50" />
       <span className="text-xl text-zinc-50">
-        Drag and drop a file to upload
+        Drag and drop a file to upload, or
       </span>
+      <button
+        className="bg-zinc-700 hover:bg-zinc-600 text-white font-bold py-2 px-4 rounded"
+        onClick={() => {
+          const input = document.createElement("input");
+          input.type = "file";
+          input.onchange = (e) => {
+            const file = (e.target as HTMLInputElement).files?.[0];
+            if (!file) return;
+            file.text().then((text: string) => {
+              save_file(file.name, text);
+            });
+          };
+          input.click();
+        }}
+      >
+        Select a file
+      </button>
     </div>
   );
 }
