@@ -1,7 +1,7 @@
 "use client";
 import { auth } from "../firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import useWebSocket from "react-use-websocket";
 import Ansi from "ansi-to-react";
 
@@ -19,7 +19,7 @@ function GameText({
   const ansi = Ansi({ children: content });
   ansi.props.children.push(
     <input
-      className="bg-transparent text-white p-1 outline-none m-0"
+      className="bg-transparent text-white p-0 outline-none m-0"
       type="text"
       value={input}
       onChange={(e) => setInput(e.target.value)}
