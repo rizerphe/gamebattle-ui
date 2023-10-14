@@ -77,8 +77,8 @@ export default function EditorLayout({ api_route }: { api_route: string }) {
   };
 
   return (
-    <div className="flex flex-row items-stretch flex-1 w-full rounded-md overflow-hidden shadow-md shadow-black">
-      <div className="flex flex-col items-stretch gap-2 bg-zinc-800 p-0 min-w-[16rem]">
+    <div className="flex flex-row flex-wrap items-stretch flex-1 w-full rounded-md overflow-hidden shadow-md shadow-black">
+      <div className="flex flex-col flex-1 items-stretch gap-2 bg-zinc-800 p-0 min-w-[16rem]">
         <Builder
           files={files}
           api_route={api_route}
@@ -92,7 +92,7 @@ export default function EditorLayout({ api_route }: { api_route: string }) {
           delete_file={delete_file}
         />
       </div>
-      <div className="flex flex-col flex-1 bg-zinc-950">
+      <div className="flex flex-col flex-1 min-w-[75%] bg-zinc-950">
         <FileEditor
           files={files}
           save_file={save_file}
