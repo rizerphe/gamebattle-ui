@@ -10,7 +10,7 @@ export default function NavBar() {
         href="/"
       >
         <Image src="/logo.png" width={50} height={50} alt="logo" />
-        <span className="hidden sm:visible">GameBattle</span>
+        <span className="hidden md:block">GameBattle</span>
       </Link>
       <AccountButton />
     </div>

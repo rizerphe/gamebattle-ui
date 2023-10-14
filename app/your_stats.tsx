@@ -8,8 +8,8 @@ export default function YourStats() {
   }
 
   return (
-    <div className="bg-white text-gray-600 bg-opacity-80 p-4 flex flex-col items-center gap-2 flex-1">
-      <span className="font-bold text-4xl flex flex-row items-center justify-start gap-2">
+    <div className="bg-white text-gray-600 bg-opacity-80 p-4 flex flex-col items-center gap-2 flex-1 min-w-fit">
+      <span className="font-bold text-4xl flex flex-row items-center justify-start gap-2 whitespace-nowrap">
         Your stats
       </span>
       <div className="flex flex-col gap-2">

@@ -12,7 +12,7 @@ function Window({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-stretch gap-8 p-8 max-w-[50rem] w-screen bg-black bg-opacity-90">
+    <div className="flex flex-col flex-[3] items-stretch gap-8 p-8 bg-black bg-opacity-90 min-w-fit">
       <span className="font-bold text-4xl flex flex-row items-center justify-start gap-2">
         <Image src="/logo.png" width={40} height={40} alt="logo" />
         {title}
