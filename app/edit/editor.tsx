@@ -12,24 +12,28 @@ function CodeEditor({
   code,
   setCode,
   filename,
+  save_file,
 }: {
   code: string;
   setCode: (code: string) => void;
   filename: string;
+  save_file: () => void;
 }) {
-  const extension_to_language = new Map<string, string>();
-  extension_to_language.set("py", "python");
-  extension_to_language.set("Dockerfile", "dockerfile");
-  extension_to_language.set("yaml", "yaml");
-  extension_to_language.set("yml", "yaml");
-
   return (
     <Editor
-      language={extension_to_language.get(filename.split(".").slice(-1)[0])}
+      path={filename}
       theme="vs-dark"
       value={code}
       onChange={(code) => setCode(code || "")}
       className="h-full w-full"
+      wrapperProps={{
+        onKeyDown: (e: any) => {
+          if (e.ctrlKey && e.key === "s") {
+            e.preventDefault();
+            save_file();
+          }
+        },
+      }}
     />
   );
 }
@@ -312,6 +316,16 @@ export default function FileEditor({
           code={open_file_content || ""}
           setCode={(value) => setOpenFileContent(value)}
           filename={open_file || ""}
+          save_file={() => {
+            if (!open_file) return;
+            save_file(
+              open_file,
+              modified_files.find((f) => f.path === open_file)?.content || ""
+            );
+            setModifiedFiles(
+              modified_files.filter((f) => f.path !== open_file)
+            );
+          }}
         />
       ) : (
         <DndProvider backend={HTML5Backend}>
