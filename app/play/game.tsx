@@ -71,6 +71,7 @@ export default function Game({
 }) {
   const [user] = useAuthState(auth);
   const [output, setOutput] = useState<string>("");
+  const [newConnection, setNewConnection] = useState<boolean>(true);
   const [idToken, setIdToken] = useState<string | null>(null);
   const { sendMessage } = useWebSocket(
     `${api_route}/sessions/${session_id}/${game}/ws`,
@@ -80,14 +81,17 @@ export default function Game({
       reconnectInterval: 1000,
       onOpen: () => {
         idToken && sendMessage(idToken);
-        setOutput("");
         setConnected(true);
+        setNewConnection(true);
       },
       onClose: () => {
         setConnected(false);
       },
       onMessage: (e: any) => {
-        setOutput((output) => output + e.data);
+        if (newConnection) {
+          setNewConnection(false);
+        }
+        setOutput((output) => (newConnection ? "" : output) + e.data);
       },
     },
     idToken ? true : false
