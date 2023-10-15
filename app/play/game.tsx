@@ -45,7 +45,7 @@ function GameText({
 
   return (
     <div
-      className="p-4 flex flex-col whitespace-pre-wrap overflow-y-scroll"
+      className="p-4 flex flex-col whitespace-pre-wrap overflow-y-auto scrollbar-none"
       style={{
         maxHeight: "calc(100vh - 16rem)",
       }}
