@@ -134,10 +134,11 @@ function EditorTabs({
           }`}
           onClick={() => {
             if (!open_file) return;
-            save_file(
-              open_file,
-              modified_files.find((f) => f.path === open_file)?.content || ""
+            const current_file = modified_files.find(
+              (f) => f.path === open_file
             );
+            if (!current_file) return;
+            save_file(open_file, current_file.content);
             setModifiedFiles(
               modified_files.filter((f) => f.path !== open_file)
             );
