@@ -35,7 +35,7 @@ export default function GameTooling({
       <VscRefresh
         className={`${
           restarting ? "animate-spin" : ""
-        } text-xl text-gray-500 hover:text-gray-700`}
+        } text-xl text-zinc-200 hover:text-zinc-400`}
         onClick={restartGame}
       />
     </>
