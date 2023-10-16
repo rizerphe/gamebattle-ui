@@ -146,7 +146,7 @@ function EditorTabs({
         >
           Save
         </button>
-        <Link href="/" className="text-white font-bold py-2 px-4 bg-zinc-950">
+        <Link href="/" className="text-white font-bold p-4 bg-zinc-950">
           <VscChromeClose />
         </Link>
       </div>
