@@ -5,6 +5,7 @@ import { useEffect, useState, useRef } from "react";
 import { z } from "zod";
 import GameContainer from "./game_container";
 import Game from "./game";
+import GameTooling from "./game_tooling";
 
 const Session = z.object({
   launch_time: z.number(),
@@ -15,27 +16,44 @@ type Session = z.infer<typeof Session>;
 
 function GameBox({
   name,
+  api_route,
   api_ws_route,
   session_id,
   game,
-  setConnected,
   tooling,
 }: {
   name: string;
+  api_route: string;
   api_ws_route: string;
   session_id: string;
   game: number;
-  setConnected: (connected: boolean) => void;
   tooling?: React.ReactNode;
 }) {
   const ref = useRef<HTMLInputElement>(null);
+  const [connected, setConnected] = useState<boolean>(false);
 
   return (
     <div
       className="flex flex-col flex-1 bg-black bg-opacity-90 rounded-lg items-stretch"
       onClick={() => ref.current?.focus?.()}
     >
-      <GameContainer name={name} tooling={tooling} key={game}>
+      <GameContainer
+        name={name}
+        tooling={
+          <>
+            <GameTooling
+              api_route={api_route}
+              session_id={session_id}
+              game_id={game}
+            />
+            {connected ? null : (
+              <span className="font-bold text-red-600">connecting...</span>
+            )}
+            {tooling}
+          </>
+        }
+        key={game}
+      >
         <Game
           api_route={api_ws_route}
           session_id={session_id}
@@ -63,7 +81,6 @@ export default function Games({
 }) {
   const [user] = useAuthState(auth);
   const [session, setSession] = useState<Session | null>(null);
-  const [connected, setConnected] = useState<boolean>(false);
 
   useEffect(() => {
     if (!user) return;
@@ -85,18 +102,11 @@ export default function Games({
         <GameBox
           key={game}
           name={name}
+          api_route={api_route}
           api_ws_route={api_ws_route}
           session_id={session_id}
           game={game}
-          setConnected={setConnected}
-          tooling={
-            <>
-              {connected ? null : (
-                <span className="font-bold text-red-600">connecting...</span>
-              )}
-              {tooling}
-            </>
-          }
+          tooling={tooling}
         />
       ))}
     </>

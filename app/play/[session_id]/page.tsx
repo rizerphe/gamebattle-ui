@@ -17,7 +17,7 @@ export default function Play({
 
   return (
     <div className="flex flex-col items-stretch flex-1 gap-4 w-full">
-      <div className="flex flex-row justify-between items-center border-cyan-900 border-2 p-2 rounded-md bg-gray-900">
+      <div className="flex flex-row justify-between items-center p-2 rounded-md bg-black bg-opacity-90">
         <TitleBar api_route={api_route} session_id={session_id} />
         <div className="rounded-full bg-gray-800 h-4 w-4">
           <Suspense

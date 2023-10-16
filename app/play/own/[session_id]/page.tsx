@@ -6,7 +6,7 @@ import GamesPlaceholder from "../../games_placeholder";
 function DevTooling() {
   return (
     <Link href="/edit">
-      <div className="flex-1 m-2 p-2 font-bold text-white text-sm bg-blue-500 rounded cursor-pointer hover:bg-blue-600">
+      <div className="flex-1 p-2 font-bold text-white text-sm bg-blue-500 rounded cursor-pointer hover:bg-blue-600">
         Return to development
       </div>
     </Link>
