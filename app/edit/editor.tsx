@@ -7,6 +7,7 @@ import { getMaterialFileIcon } from "file-extension-icon-js";
 import { DndProvider, useDrop } from "react-dnd";
 import { HTML5Backend, NativeTypes } from "react-dnd-html5-backend";
 import { VscCloudUpload } from "react-icons/vsc";
+import Link from "next/link";
 
 function CodeEditor({
   code,
@@ -124,7 +125,7 @@ function EditorTabs({
         />
       ))}
       <div className="flex-grow"></div>
-      <div className="flex flex-row gap-4">
+      <div className="flex flex-row gap-0 overflow-hidden">
         <button
           className={`text-white font-bold py-2 px-4 rounded ${
             modified_files.find((f) => f.path === open_file)
@@ -144,6 +145,9 @@ function EditorTabs({
         >
           Save
         </button>
+        <Link href="/" className="text-white font-bold py-2 px-4 bg-zinc-950">
+          <VscChromeClose />
+        </Link>
       </div>
       <Modal
         isOpen={confirmation}
