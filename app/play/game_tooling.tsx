@@ -8,10 +8,12 @@ export default function GameTooling({
   api_route,
   session_id,
   game_id,
+  setGameRunning,
 }: {
   api_route: string;
   session_id: string;
   game_id: number;
+  setGameRunning: (running: boolean) => void;
 }) {
   const [user] = useAuthState(auth);
   const [restarting, setRestarting] = useState<boolean>(false);
@@ -36,7 +38,10 @@ export default function GameTooling({
         className={`${
           restarting ? "animate-spin" : ""
         } text-xl text-zinc-200 hover:text-zinc-400`}
-        onClick={restartGame}
+        onClick={() => {
+          setGameRunning(true);
+          restartGame();
+        }}
       />
     </>
   );

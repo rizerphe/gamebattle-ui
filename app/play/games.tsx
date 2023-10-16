@@ -31,10 +31,13 @@ function GameBox({
 }) {
   const ref = useRef<HTMLInputElement>(null);
   const [connected, setConnected] = useState<boolean>(false);
+  const [gameRunning, setGameRunning] = useState<boolean>(true);
 
   return (
     <div
-      className="flex flex-col flex-1 bg-black bg-opacity-90 rounded-lg items-stretch"
+      className={`flex flex-col flex-1 ${
+        gameRunning ? "bg-black" : "bg-zinc-900"
+      } bg-opacity-90 rounded-lg items-stretch`}
       onClick={() => ref.current?.focus?.()}
     >
       <GameContainer
@@ -45,8 +48,9 @@ function GameBox({
               api_route={api_route}
               session_id={session_id}
               game_id={game}
+              setGameRunning={setGameRunning}
             />
-            {connected ? null : (
+            {connected || !gameRunning ? null : (
               <span className="font-bold text-red-600">connecting...</span>
             )}
             {tooling}
@@ -60,6 +64,8 @@ function GameBox({
           game={game}
           setConnected={setConnected}
           inputRef={ref}
+          gameRunning={gameRunning}
+          setGameRunning={setGameRunning}
         />
       </GameContainer>
     </div>

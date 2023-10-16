@@ -62,12 +62,16 @@ export default function Game({
   game,
   setConnected,
   inputRef,
+  gameRunning,
+  setGameRunning,
 }: {
   api_route: string;
   session_id: string;
   game: number;
   setConnected: (connected: boolean) => void;
   inputRef?: React.RefObject<HTMLInputElement>;
+  gameRunning: boolean;
+  setGameRunning: (running: boolean) => void;
 }) {
   const [user] = useAuthState(auth);
   const [output, setOutput] = useState<string>("");
@@ -91,10 +95,17 @@ export default function Game({
         if (newConnection) {
           setNewConnection(false);
         }
-        setOutput((output) => (newConnection ? "" : output) + e.data);
+        const message = JSON.parse(e.data);
+        if (message.type === "stdout") {
+          setGameRunning(true);
+          setOutput((output) => (newConnection ? "" : output) + message.data);
+        }
+        if (message.type === "bye") {
+          setGameRunning(false);
+        }
       },
     },
-    idToken ? true : false
+    idToken ? true : false && gameRunning
   );
 
   useEffect(() => {
