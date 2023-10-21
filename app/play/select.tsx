@@ -9,7 +9,12 @@ import Link from "next/link";
 
 const session_schema = z.object({
   id: z.string(),
-  games: z.array(z.string()),
+  games: z.array(
+    z.object({
+      name: z.string(),
+      over: z.boolean(),
+    })
+  ),
   launch_time: z.number(),
 });
 
@@ -62,20 +67,19 @@ export default function Select({ api_route }: { api_route: string }) {
 
   if (redirectDestination) {
     redirect(redirectDestination);
-    return null;
   }
 
   if (!sessions || sessions.length === 0) return null;
 
   return (
-    <div className="flex flex-col items-stretch justify-center rounded-lg overflow-hidden bg-gray-900 w-full">
+    <div className="flex flex-col items-stretch justify-center rounded-lg overflow-hidden bg-black bg-opacity-90 w-full">
       {sessions.map((session) => (
         <Link
           href={`/play/${session.id}`}
           key={session.id}
-          className="hover:bg-gray-800 p-3 text-center"
+          className="hover:bg-zinc-900 p-3 text-center"
         >
-          {`${session.games.join(", ")} - ${moment
+          {`${session.games.map((game) => game.name).join(", ")} - ${moment
             .unix(session.launch_time)
             .fromNow()}`}
         </Link>

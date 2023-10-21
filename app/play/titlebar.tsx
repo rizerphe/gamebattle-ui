@@ -7,7 +7,7 @@ import { z } from "zod";
 
 const Session = z.object({
   launch_time: z.number(),
-  games: z.array(z.string()),
+  games: z.array(z.object({ name: z.string(), over: z.boolean() })),
 });
 
 type Session = z.infer<typeof Session>;
@@ -38,7 +38,7 @@ export default function TitleBar({
 
   return session ? (
     <span>
-      {`${session.games.join(", ")} - ${moment
+      {`${session.games.map((game) => game.name).join(", ")} - ${moment
         .unix(session.launch_time)
         .fromNow()}`}
     </span>

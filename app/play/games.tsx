@@ -9,7 +9,12 @@ import GameTooling from "./game_tooling";
 
 const Session = z.object({
   launch_time: z.number(),
-  games: z.array(z.string()),
+  games: z.array(
+    z.object({
+      name: z.string(),
+      over: z.boolean(),
+    })
+  ),
 });
 
 type Session = z.infer<typeof Session>;
@@ -21,6 +26,11 @@ function GameBox({
   session_id,
   game,
   tooling,
+  gameOver,
+  setGameOver,
+  allGamesOver,
+  score,
+  setScore,
 }: {
   name: string;
   api_route: string;
@@ -28,6 +38,11 @@ function GameBox({
   session_id: string;
   game: number;
   tooling?: React.ReactNode;
+  gameOver: boolean;
+  setGameOver: (gameOver: boolean) => void;
+  allGamesOver: boolean;
+  score: number;
+  setScore: (score: number) => void;
 }) {
   const ref = useRef<HTMLInputElement>(null);
   const [connected, setConnected] = useState<boolean>(false);
@@ -49,6 +64,10 @@ function GameBox({
               session_id={session_id}
               game_id={game}
               setGameRunning={setGameRunning}
+              gameOver={gameOver}
+              allGamesOver={allGamesOver}
+              score={score}
+              setScore={setScore}
             />
             {connected || !gameRunning ? null : (
               <span className="font-bold text-red-600">connecting...</span>
@@ -65,7 +84,10 @@ function GameBox({
           setConnected={setConnected}
           inputRef={ref}
           gameRunning={gameRunning}
-          setGameRunning={setGameRunning}
+          setGameRunning={(running: boolean) => {
+            setGameRunning(running);
+            if (!running) setGameOver(true);
+          }}
         />
       </GameContainer>
     </div>
@@ -87,6 +109,28 @@ export default function Games({
 }) {
   const [user] = useAuthState(auth);
   const [session, setSession] = useState<Session | null>(null);
+  const [GamesOver, setGamesOver] = useState<boolean[]>([]);
+  const [score, setScore] = useState<number>(0);
+
+  useEffect(() => {
+    const getScore = async () => {
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) return null;
+      const response = await fetch(
+        `${api_route}/sessions/${session_id}/preference`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      const data = await response.json();
+      setScore(data.first_score);
+    };
+    getScore();
+  }, [session_id, user?.uid]);
 
   useEffect(() => {
     if (!user) return;
@@ -97,24 +141,37 @@ export default function Games({
         },
       });
       const json = await response.json();
-      setSession(Session.parse(json));
+      const session = Session.parse(json);
+      setSession(session);
+      setGamesOver(session.games.map((game) => game.over));
     };
     fetch_session();
   }, [user?.uid, api_route, session_id]);
 
   return session ? (
     <>
-      {session.games.map((name: string, game: number) => (
-        <GameBox
-          key={game}
-          name={name}
-          api_route={api_route}
-          api_ws_route={api_ws_route}
-          session_id={session_id}
-          game={game}
-          tooling={tooling}
-        />
-      ))}
+      {session.games.map(
+        ({ name }: { name: string; over: boolean }, game: number) => (
+          <GameBox
+            key={game}
+            name={name}
+            api_route={api_route}
+            api_ws_route={api_ws_route}
+            session_id={session_id}
+            game={game}
+            tooling={tooling}
+            allGamesOver={GamesOver.every((gameOver) => gameOver)}
+            gameOver={GamesOver[game]}
+            setGameOver={(gameOver: boolean) => {
+              const newGamesOver = [...GamesOver];
+              newGamesOver[game] = gameOver;
+              setGamesOver(newGamesOver);
+            }}
+            score={score}
+            setScore={setScore}
+          />
+        )
+      )}
     </>
   ) : (
     <>
