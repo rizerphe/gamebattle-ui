@@ -130,7 +130,7 @@ function ScoreButton({
   allGamesOver,
 }: {
   ownScore: number;
-  score: number;
+  score: number | null;
   setScore: (score: number) => void;
   api_route: string;
   session_id: string;
@@ -221,7 +221,7 @@ export default function GameTooling({
   setGameRunning: (running: boolean) => void;
   gameOver: boolean;
   allGamesOver: boolean;
-  score: number;
+  score: number | null;
   setScore: (score: number) => void;
 }) {
   const [user] = useAuthState(auth);

@@ -41,7 +41,7 @@ function GameBox({
   gameOver: boolean;
   setGameOver: (gameOver: boolean) => void;
   allGamesOver: boolean;
-  score: number;
+  score: number | null;
   setScore: (score: number) => void;
 }) {
   const ref = useRef<HTMLInputElement>(null);
@@ -110,7 +110,7 @@ export default function Games({
   const [user] = useAuthState(auth);
   const [session, setSession] = useState<Session | null>(null);
   const [GamesOver, setGamesOver] = useState<boolean[]>([]);
-  const [score, setScore] = useState<number>(0);
+  const [score, setScore] = useState<number | null>(null);
 
   useEffect(() => {
     const getScore = async () => {
