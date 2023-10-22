@@ -48,6 +48,7 @@ function GameBox({
   const [output, setOutput] = useState<string>("");
   const [connected, setConnected] = useState<boolean>(false);
   const [gameRunning, setGameRunning] = useState<boolean>(true);
+  const [restarting, setRestarting] = useState<boolean>(false);
 
   return (
     <div
@@ -70,6 +71,8 @@ function GameBox({
               score={score}
               setScore={setScore}
               output={output}
+              restarting={restarting}
+              setRestarting={setRestarting}
             />
             {connected || !gameRunning ? null : (
               <span className="font-bold text-red-600">connecting...</span>
@@ -87,8 +90,10 @@ function GameBox({
           inputRef={ref}
           gameRunning={gameRunning}
           setGameRunning={(running: boolean) => {
-            setGameRunning(running);
-            if (!running) setGameOver(true);
+            if (!restarting) {
+              setGameRunning(running);
+              if (!running) setGameOver(true);
+            }
           }}
           output={output}
           setOutput={setOutput}
@@ -113,7 +118,7 @@ export default function Games({
 }) {
   const [user] = useAuthState(auth);
   const [session, setSession] = useState<Session | null>(null);
-  const [GamesOver, setGamesOver] = useState<boolean[]>([]);
+  const [gamesOver, setGamesOver] = useState<boolean[]>([]);
   const [score, setScore] = useState<number | null>(null);
 
   useEffect(() => {
@@ -164,10 +169,10 @@ export default function Games({
             session_id={session_id}
             game={game}
             tooling={tooling}
-            allGamesOver={GamesOver.every((gameOver) => gameOver)}
-            gameOver={GamesOver[game]}
+            allGamesOver={gamesOver.every((gameOver) => gameOver)}
+            gameOver={gamesOver[game]}
             setGameOver={(gameOver: boolean) => {
-              const newGamesOver = [...GamesOver];
+              const newGamesOver = [...gamesOver];
               newGamesOver[game] = gameOver;
               setGamesOver(newGamesOver);
             }}

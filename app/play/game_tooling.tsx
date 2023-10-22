@@ -262,6 +262,8 @@ export default function GameTooling({
   score,
   setScore,
   output,
+  restarting,
+  setRestarting,
 }: {
   api_route: string;
   session_id: string;
@@ -272,9 +274,10 @@ export default function GameTooling({
   score: number | null;
   setScore: (score: number) => void;
   output: string;
+  restarting: boolean;
+  setRestarting: (restarting: boolean) => void;
 }) {
   const [user] = useAuthState(auth);
-  const [restarting, setRestarting] = useState<boolean>(false);
 
   const restartGame = async () => {
     setRestarting(true);
