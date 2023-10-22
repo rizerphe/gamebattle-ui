@@ -102,7 +102,10 @@ export default function Stats({ api_route }: { api_route: string }) {
             Your performance
           </span>
           <ProgressBar
-            progress={(stats.stats?.place ?? 0) / (stats.stats?.places ?? 1)}
+            progress={
+              1 -
+              ((stats.stats?.place ?? 1) - 1) / ((stats.stats?.places ?? 2) - 1)
+            }
           >
             {stats.stats?.elo?.toFixed(0)} ELO
           </ProgressBar>
