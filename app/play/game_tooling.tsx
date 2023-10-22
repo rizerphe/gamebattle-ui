@@ -108,7 +108,7 @@ function ReportButton({
               onChange={() => setShortReason("buggy")}
               onClick={(e) => e.stopPropagation()}
             />
-            <span className="text-zinc-300">The game doesn't work</span>
+            <span className="text-zinc-300">The game doesn&apos;t work</span>
           </div>
           <div className="flex flex-row items-center gap-2">
             <input
@@ -118,7 +118,7 @@ function ReportButton({
               onChange={() => setShortReason("other")}
               onClick={(e) => e.stopPropagation()}
             />
-            <span className="text-zinc-300">Other / I don't know</span>
+            <span className="text-zinc-300">Other / I don&apos;t know</span>
           </div>
           <div className="flex flex-row items-center gap-2">
             <input
