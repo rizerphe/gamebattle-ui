@@ -33,7 +33,9 @@ export default function PlayWindow({ disabled }: { disabled?: boolean }) {
     </Window>
   ) : user ? (
     <Window>
-      <Button href="/edit">Create</Button>
+      <Button disabled={!disabled} href="/edit">
+        Create
+      </Button>
       <Button disabled={disabled} href="/play">
         Play
       </Button>
