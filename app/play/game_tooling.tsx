@@ -134,7 +134,7 @@ function ReportButton({
           </div>
           <textarea
             className="rounded border-2 border-zinc-700 p-2 text-zinc-300 bg-zinc-900"
-            placeholder="Reason for reporting"
+            placeholder="More details (optional)"
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             onClick={(e) => e.stopPropagation()}
