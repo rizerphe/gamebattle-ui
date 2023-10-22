@@ -136,7 +136,7 @@ export default function Games({
         }
       );
       const data = await response.json();
-      setScore(data.first_score);
+      setScore(data?.first_score);
     };
     getScore();
   }, [session_id, user?.uid]);
