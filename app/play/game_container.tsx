@@ -9,7 +9,7 @@ export default function GameContainer({
 }) {
   return (
     <>
-      <div className="flex flex-row justify-between items-start gap-6 m-6">
+      <div className="flex flex-row justify-between items-center gap-3 m-3">
         <span className="text-2xl font-bold m-0">{name}</span>
         <div className="flex-grow" />
         {tooling}

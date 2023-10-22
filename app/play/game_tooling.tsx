@@ -7,6 +7,58 @@ import { VscRefresh, VscWarning, VscRunAll } from "react-icons/vsc";
 import { AiFillLike } from "react-icons/ai";
 import { redirect } from "next/navigation";
 
+function RestartButton({
+  api_route,
+  session_id,
+  game_id,
+  restarting,
+  setRestarting,
+  setGameRunning,
+}: {
+  api_route: string;
+  session_id: string;
+  game_id: number;
+  restarting: boolean;
+  setRestarting: (restarting: boolean) => void;
+  setGameRunning: (running: boolean) => void;
+}) {
+  const [user] = useAuthState(auth);
+
+  const restartGame = async () => {
+    setRestarting(true);
+    await fetch(`${api_route}/sessions/${session_id}/${game_id}/restart`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${await user?.getIdToken()}`,
+      },
+      body: JSON.stringify({}),
+    });
+    setRestarting(false);
+  };
+
+  return (
+    <span
+      className="relative group rounded-full p-3 aspect-square bg-transparent hover:bg-black"
+      onClick={() => {
+        setGameRunning(true);
+        restartGame();
+      }}
+    >
+      <VscRefresh
+        className={`${
+          restarting ? "animate-spin" : ""
+        } text-xl text-zinc-200 hover:text-zinc-400`}
+      />
+      <div className="absolute bottom-full left-1/2 p-2 -translate-x-1/2 min-w-fit whitespace-nowrap">
+        <span className="rounded bg-zinc-200 text-black px-2 py-1 text-xs font-bold opacity-0 group-hover:opacity-100 transition duration-300">
+          Restart game
+        </span>
+      </div>
+    </span>
+  );
+}
+
 function ReportButton({
   api_route,
   session_id,
@@ -60,11 +112,16 @@ function ReportButton({
   };
 
   return (
-    <>
-      <VscWarning
-        className="text-xl text-zinc-200 hover:text-zinc-400 m-2"
-        onClick={() => setConfirmation(true)}
-      />
+    <span
+      className="relative group rounded-full p-3 aspect-square bg-transparent hover:bg-black"
+      onClick={() => setConfirmation(true)}
+    >
+      <VscWarning className="text-xl text-zinc-200 group-hover:text-zinc-400" />
+      <div className="absolute bottom-full left-1/2 p-2 -translate-x-1/2 min-w-fit whitespace-nowrap">
+        <span className="rounded bg-zinc-200 text-black px-2 py-1 text-xs font-bold opacity-0 group-hover:opacity-100 transition duration-300">
+          Report game
+        </span>
+      </div>
       <Modal
         isOpen={confirmation}
         contentLabel="Confirm close"
@@ -77,12 +134,17 @@ function ReportButton({
             marginRight: "-50%",
             transform: "translate(-50%, -50%)",
             backgroundColor: "#1e1e1e",
+            border: "none",
+            borderRadius: "0.5rem",
           },
           overlay: {
             backgroundColor: "rgba(0, 0, 0, 0.75)",
           },
         }}
-        onRequestClose={() => setConfirmation(false)}
+        onRequestClose={(e) => {
+          setConfirmation(false);
+          e.stopPropagation();
+        }}
       >
         <div className="flex flex-col gap-4 items-stretch">
           <span className="text-xl font-bold text-center">Report a game</span>
@@ -142,15 +204,19 @@ function ReportButton({
           <div className="flex flex-row justify-stretch rounded overflow-hidden">
             <button
               className="bg-zinc-700 hover:bg-zinc-600 text-white font-bold py-2 px-4 flex-1 border-zinc-700 border-2"
-              onClick={() => setConfirmation(false)}
+              onClick={(e) => {
+                setConfirmation(false);
+                e.stopPropagation();
+              }}
             >
               Cancel
             </button>
             <button
               className="bg-zinc-700 hover:bg-zinc-600 text-white font-bold py-2 px-4 flex-1 border-zinc-600 border-2"
-              onClick={() => {
+              onClick={(e) => {
                 reportGame();
                 setConfirmation(false);
+                e.stopPropagation();
               }}
             >
               Report
@@ -166,7 +232,7 @@ function ReportButton({
           </div>
         </div>
       </Modal>
-    </>
+    </span>
   );
 }
 
@@ -186,7 +252,6 @@ function ScoreButton({
   allGamesOver: boolean;
 }) {
   const [user] = useAuthState(auth);
-  const [redirecting, setRedirecting] = useState<boolean>(false);
 
   const setPreference = async () => {
     setScore(ownScore);
@@ -200,58 +265,76 @@ function ScoreButton({
     });
   };
 
-  const nextSession = async () => {
-    await fetch(`${api_route}/sessions/${session_id}/`, {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${await user?.getIdToken()}`,
-      },
-    });
-    setRedirecting(true);
-  };
-
-  if (redirecting) {
-    redirect("/play");
-  }
-
+  const image_source = {
+    1: "/cat-1.png",
+    2: "/cat-2.png",
+    3: "/cat-3.png",
+  }[Math.abs(0.5 - ownScore) * 8 - 1];
+  const image_source_hover = {
+    1: "/cat-1.png",
+    2: "/cat-2.png",
+    3: "/cat-3-hover.png",
+  }[Math.abs(0.5 - ownScore) * 8 - 1];
+  const caption = {
+    0: "Normal like (some power)",
+    1: "Cat like (more power)",
+    2: "Very cat like (so much power)",
+    3: "Super cat like (most power)",
+  }[Math.abs(0.5 - ownScore) * 8 - 1];
   const active = ownScore === score;
 
-  return (
-    <>
-      <span
-        className={`relative group rounded-full p-2 ${
-          active ? "bg-zinc-700" : "bg-zinc-300 hover:bg-zinc-400"
-        }`}
-      >
-        {allGamesOver ? (
-          <AiFillLike
-            className={`text-2xl text-green-800 ${
-              active ? "" : "animate-pulse animate-bounce"
-            }`}
-            onClick={setPreference}
-          />
+  return allGamesOver || !image_source ? (
+    <span
+      className={`relative group rounded-full p-3 aspect-square ${
+        active
+          ? "bg-black outline outline-zinc-600 outline-1"
+          : "bg-transparent hover:bg-black"
+      }`}
+      onClick={setPreference}
+    >
+      {allGamesOver ? (
+        image_source ? (
+          <>
+            <img src={image_source} alt="Cat" />
+            <div className="absolute inset-0 p-3">
+              <img
+                src={image_source_hover}
+                alt=""
+                className="opacity-0 group-hover:opacity-100 transition"
+              />
+            </div>
+            {caption ? (
+              <div className="absolute bottom-full left-1/2 p-2 -translate-x-1/2 min-w-fit whitespace-nowrap">
+                <span className="rounded bg-zinc-200 text-black px-2 py-1 text-xs font-bold opacity-0 group-hover:opacity-100 transition duration-300">
+                  {caption}
+                </span>
+              </div>
+            ) : null}
+          </>
         ) : (
           <>
-            <AiFillLike className="text-2xl text-zinc-800" />
-            <div className="absolute inset-0 hidden group-hover:block">
-              <span className="absolute top-0 right-0 bottom-0 flex flex-row justify-center items-center whitespace-nowrap w-fit rounded text-xs bg-zinc-100 text-zinc-900 p-1">
-                Finish all games first!
-              </span>
-            </div>
+            <AiFillLike className="text-2xl text-white" />
+            {caption ? (
+              <div className="absolute bottom-full left-1/2 p-2 -translate-x-1/2 min-w-fit whitespace-nowrap">
+                <span className="rounded bg-zinc-200 text-black px-2 py-1 text-xs font-bold opacity-0 group-hover:opacity-100 transition duration-300">
+                  {caption}
+                </span>
+              </div>
+            ) : null}
           </>
-        )}
-      </span>
-      {active ? (
-        <span
-          className="text-xs text-zinc-900 rounded p-2 flex flex-row justify-center items-center gap-2 cursor-pointer bg-zinc-200 hover:bg-zinc-300"
-          onClick={nextSession}
-        >
-          Next session <VscRunAll />
-        </span>
-      ) : null}
-    </>
-  );
+        )
+      ) : image_source ? null : (
+        <>
+          <AiFillLike className="text-2xl text-white" />
+          <div className="absolute bottom-full left-1/2 p-2 -translate-x-1/2 min-w-fit whitespace-nowrap">
+            <span className="rounded bg-zinc-200 text-black px-2 py-1 text-xs font-bold opacity-0 group-hover:opacity-100 transition duration-300">
+              Finish all games first
+            </span>
+          </div>
+        </>
+      )}
+    </span>
+  ) : null;
 }
 
 export default function GameTooling({
@@ -280,30 +363,38 @@ export default function GameTooling({
   setRestarting: (restarting: boolean) => void;
 }) {
   const [user] = useAuthState(auth);
+  const [redirecting, setRedirecting] = useState<boolean>(false);
 
-  const restartGame = async () => {
-    setRestarting(true);
-    await fetch(`${api_route}/sessions/${session_id}/${game_id}/restart`, {
-      method: "POST",
+  const nextSession = async () => {
+    await fetch(`${api_route}/sessions/${session_id}/`, {
+      method: "DELETE",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${await user?.getIdToken()}`,
       },
-      body: JSON.stringify({}),
     });
-    setRestarting(false);
+    setRedirecting(true);
   };
+
+  if (redirecting) {
+    redirect("/play");
+  }
+  const next_text = {
+    0: ":)",
+    1: ":p",
+    2: ":3",
+    3: ":D",
+  }[Math.abs(0.5 - (score ?? 0.5)) * 8 - 1];
 
   return (
     <>
-      <VscRefresh
-        className={`${
-          restarting ? "animate-spin" : ""
-        } text-xl text-zinc-200 hover:text-zinc-400 m-2`}
-        onClick={() => {
-          setGameRunning(true);
-          restartGame();
-        }}
+      <RestartButton
+        api_route={api_route}
+        session_id={session_id}
+        game_id={game_id}
+        restarting={restarting}
+        setRestarting={setRestarting}
+        setGameRunning={setGameRunning}
       />
       <ReportButton
         api_route={api_route}
@@ -312,15 +403,54 @@ export default function GameTooling({
         output={output}
       />
       {gameOver ? (
-        <ScoreButton
-          ownScore={1 - game_id}
-          score={score}
-          setScore={setScore}
-          api_route={api_route}
-          session_id={session_id}
-          allGamesOver={allGamesOver}
-        />
+        <>
+          <ScoreButton
+            ownScore={1 - game_id}
+            score={score}
+            setScore={setScore}
+            api_route={api_route}
+            session_id={session_id}
+            allGamesOver={allGamesOver}
+          />
+          <ScoreButton
+            ownScore={Math.abs(1 - game_id - 0.125)}
+            score={score}
+            setScore={setScore}
+            api_route={api_route}
+            session_id={session_id}
+            allGamesOver={allGamesOver}
+          />
+          <ScoreButton
+            ownScore={Math.abs(1 - game_id - 0.25)}
+            score={score}
+            setScore={setScore}
+            api_route={api_route}
+            session_id={session_id}
+            allGamesOver={allGamesOver}
+          />
+          <ScoreButton
+            ownScore={Math.abs(1 - game_id - 0.375)}
+            score={score}
+            setScore={setScore}
+            api_route={api_route}
+            session_id={session_id}
+            allGamesOver={allGamesOver}
+          />
+        </>
       ) : null}
+      {score === null ? null : (
+        <span
+          className="relative text-xs text-bold text-green-400 rounded p-4 flex flex-row justify-center items-center gap-2 cursor-pointer bg-black hover:bg-zinc-950 whitespace-nowrap group"
+          onClick={nextSession}
+        >
+          {next_text} <VscRunAll />
+          <div className="absolute bottom-full left-1/2 p-2 -translate-x-1/2 min-w-fit whitespace-nowrap">
+            <span className="rounded bg-zinc-200 text-black px-2 py-1 text-xs font-bold opacity-0 group-hover:opacity-100 transition duration-300">
+              Next session
+            </span>
+          </div>
+        </span>
+      )}
     </>
   );
 }
