@@ -17,7 +17,7 @@ function Window({
         <Image src="/logo.png" width={40} height={40} alt="logo" />
         {title}
       </span>
-      <div className="flex flex-col items-stretch gap-4 text-2xl">
+      <div className="flex flex-col flex-1 justify-evenly items-stretch gap-4 text-2xl">
         {children}
       </div>
     </div>
