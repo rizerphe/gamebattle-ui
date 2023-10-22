@@ -33,6 +33,7 @@ const statsSchema = z.object({
   elo: z.number().optional(),
   max_elo: z.number().optional(),
   place: z.number().optional().nullable(),
+  places: z.number().optional(),
   accumulation: z.number().optional(),
   required_accumulation: z.number().optional(),
 });
@@ -101,7 +102,7 @@ export default function Stats({ api_route }: { api_route: string }) {
             Your performance
           </span>
           <ProgressBar
-            progress={(stats.stats?.elo ?? 0) / (stats.stats?.max_elo ?? 1)}
+            progress={(stats.stats?.place ?? 0) / (stats.stats?.places ?? 1)}
           >
             {stats.stats?.elo?.toFixed(0)} ELO
           </ProgressBar>
