@@ -45,6 +45,7 @@ function GameBox({
   setScore: (score: number) => void;
 }) {
   const ref = useRef<HTMLInputElement>(null);
+  const [output, setOutput] = useState<string>("");
   const [connected, setConnected] = useState<boolean>(false);
   const [gameRunning, setGameRunning] = useState<boolean>(true);
 
@@ -68,6 +69,7 @@ function GameBox({
               allGamesOver={allGamesOver}
               score={score}
               setScore={setScore}
+              output={output}
             />
             {connected || !gameRunning ? null : (
               <span className="font-bold text-red-600">connecting...</span>
@@ -88,6 +90,8 @@ function GameBox({
             setGameRunning(running);
             if (!running) setGameOver(true);
           }}
+          output={output}
+          setOutput={setOutput}
         />
       </GameContainer>
     </div>

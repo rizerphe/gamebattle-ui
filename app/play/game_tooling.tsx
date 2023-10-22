@@ -11,16 +11,22 @@ function ReportButton({
   api_route,
   session_id,
   game_id,
+  output = "",
 }: {
   api_route: string;
   session_id: string;
   game_id: number;
+  output?: string;
 }) {
   const [user] = useAuthState(auth);
   const [confirmation, setConfirmation] = useState<boolean>(false);
   const [reason, setReason] = useState<string>("");
   const [reporting, setReporting] = useState<boolean>(false);
   const [redirecting, setRedirecting] = useState<boolean>(false);
+  const [includeOutput, setIncludeOutput] = useState<boolean>(true);
+  const [shortReason, setShortReason] = useState<"unclear" | "buggy" | "other">(
+    "other"
+  );
 
   if (redirecting) {
     redirect("/play");
@@ -35,7 +41,9 @@ function ReportButton({
         Authorization: `Bearer ${await user?.getIdToken()}`,
       },
       body: JSON.stringify({
+        short_reason: shortReason,
         reason: reason,
+        output: includeOutput ? output : "",
       }),
     });
     if (restart_session) {
@@ -79,10 +87,49 @@ function ReportButton({
         <div className="flex flex-col gap-4 items-stretch">
           <span className="text-xl font-bold text-center">Report a game</span>
           <span className="text-center">
-            You are about to report this game as broken. This will notify the
-            organizers; they will look into it. You will not be able to play
-            this game again as long as there are other games available.
+            You are about to report this game. This will notify the organizers.
+            You might not be able to play this game again.
           </span>
+          <div className="flex flex-row items-center gap-2">
+            <input
+              type="radio"
+              className="rounded border-2 border-zinc-700 p-2 text-zinc-300 bg-zinc-900"
+              checked={shortReason === "unclear"}
+              onChange={() => setShortReason("unclear")}
+              onClick={(e) => e.stopPropagation()}
+            />
+            <span className="text-zinc-300">Unclear instructions</span>
+          </div>
+          <div className="flex flex-row items-center gap-2">
+            <input
+              type="radio"
+              className="rounded border-2 border-zinc-700 p-2 text-zinc-300 bg-zinc-900"
+              checked={shortReason === "buggy"}
+              onChange={() => setShortReason("buggy")}
+              onClick={(e) => e.stopPropagation()}
+            />
+            <span className="text-zinc-300">The game doesn't work</span>
+          </div>
+          <div className="flex flex-row items-center gap-2">
+            <input
+              type="radio"
+              className="rounded border-2 border-zinc-700 p-2 text-zinc-300 bg-zinc-900"
+              checked={shortReason === "other"}
+              onChange={() => setShortReason("other")}
+              onClick={(e) => e.stopPropagation()}
+            />
+            <span className="text-zinc-300">Other / I don't know</span>
+          </div>
+          <div className="flex flex-row items-center gap-2">
+            <input
+              type="checkbox"
+              className="rounded border-2 border-zinc-700 p-2 text-zinc-300 bg-zinc-900"
+              checked={includeOutput}
+              onChange={(e) => setIncludeOutput(e.target.checked)}
+              onClick={(e) => e.stopPropagation()}
+            />
+            <span className="text-zinc-300">Include game logs</span>
+          </div>
           <textarea
             className="rounded border-2 border-zinc-700 p-2 text-zinc-300 bg-zinc-900"
             placeholder="Reason for reporting"
@@ -214,6 +261,7 @@ export default function GameTooling({
   allGamesOver,
   score,
   setScore,
+  output,
 }: {
   api_route: string;
   session_id: string;
@@ -223,6 +271,7 @@ export default function GameTooling({
   allGamesOver: boolean;
   score: number | null;
   setScore: (score: number) => void;
+  output: string;
 }) {
   const [user] = useAuthState(auth);
   const [restarting, setRestarting] = useState<boolean>(false);
@@ -255,6 +304,7 @@ export default function GameTooling({
         api_route={api_route}
         session_id={session_id}
         game_id={game_id}
+        output={output}
       />
       {gameOver ? (
         <ScoreButton

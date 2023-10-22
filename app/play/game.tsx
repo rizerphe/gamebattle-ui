@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import useWebSocket from "react-use-websocket";
 import Ansi from "ansi-to-react";
 
-function GameText({
+export function GameText({
   content,
   send,
   inputRef,
@@ -64,6 +64,8 @@ export default function Game({
   inputRef,
   gameRunning,
   setGameRunning,
+  output = "",
+  setOutput = () => {},
 }: {
   api_route: string;
   session_id: string;
@@ -72,9 +74,10 @@ export default function Game({
   inputRef?: React.RefObject<HTMLInputElement>;
   gameRunning: boolean;
   setGameRunning: (running: boolean) => void;
+  output?: string;
+  setOutput?: (output: string) => void;
 }) {
   const [user] = useAuthState(auth);
-  const [output, setOutput] = useState<string>("");
   const [newConnection, setNewConnection] = useState<boolean>(true);
   const [idToken, setIdToken] = useState<string | null>(null);
   const { sendMessage } = useWebSocket(
