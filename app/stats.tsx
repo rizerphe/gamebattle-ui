@@ -94,7 +94,7 @@ export default function Stats({ api_route }: { api_route: string }) {
             {stats?.stats?.accumulation}
           </ProgressBar>
           <span className="font-bold">
-            You need to test {stats.stats?.required_accumulation} games.
+            You need to do {stats.stats?.required_accumulation} comparisons.
           </span>
         </div>
         <div className="flex flex-col items-center gap-2">
