@@ -62,7 +62,7 @@ function ReportButton({
   return (
     <>
       <VscWarning
-        className="text-xl text-zinc-200 hover:text-zinc-400"
+        className="text-xl text-zinc-200 hover:text-zinc-400 m-2"
         onClick={() => setConfirmation(true)}
       />
       <Modal
@@ -218,7 +218,7 @@ function ScoreButton({
   return (
     <>
       <span
-        className={`relative rounded-full p-2 ${
+        className={`relative group rounded-full p-2 ${
           active ? "bg-zinc-700" : "bg-zinc-300 hover:bg-zinc-400"
         }`}
       >
@@ -232,7 +232,7 @@ function ScoreButton({
         ) : (
           <>
             <AiFillLike className="text-2xl text-zinc-800" />
-            <div className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-300">
+            <div className="absolute inset-0 hidden group-hover:block">
               <span className="absolute top-0 right-0 bottom-0 flex flex-row justify-center items-center whitespace-nowrap w-fit rounded text-xs bg-zinc-100 text-zinc-900 p-1">
                 Finish all games first!
               </span>
@@ -294,7 +294,7 @@ export default function GameTooling({
       <VscRefresh
         className={`${
           restarting ? "animate-spin" : ""
-        } text-xl text-zinc-200 hover:text-zinc-400`}
+        } text-xl text-zinc-200 hover:text-zinc-400 m-2`}
         onClick={() => {
           setGameRunning(true);
           restartGame();
