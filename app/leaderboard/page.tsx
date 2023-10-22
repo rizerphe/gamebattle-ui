@@ -2,6 +2,7 @@ import LeaderboardTable from "./table";
 
 export default function Leaderboard() {
   const api_route = process.env.API_ROUTE;
+  if (!api_route) throw new Error("API_ROUTE not set");
 
   return (
     <div className="flex flex-col flex-1 bg-black bg-opacity-90 rounded-lg items-stretch w-full overflow-hidden">
