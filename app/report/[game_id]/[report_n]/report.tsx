@@ -47,7 +47,7 @@ export default function Report({
 
   return (
     <>
-      <div className="flex flex-row justify-start items-center gap-4 p-2 rounded-md bg-black bg-opacity-90">
+      <div className="flex flex-row justify-start items-center gap-4 p-2 rounded-md bg-black bg-opacity-90 flex-wrap">
         {reports?.map((report, i) => (
           <Link
             key={i}
@@ -61,6 +61,12 @@ export default function Report({
         <span className="text-green-400">
           Short reason: {report?.short_reason}
         </span>
+        <Link
+          href={`/edit/${game_id}`}
+          className="hover:underline hover:text-green-400"
+        >
+          Edit game
+        </Link>
       </div>
       {report?.output ? (
         <div className="flex flex-col flex-1 bg-black bg-opacity-90 rounded-lg items-stretch">

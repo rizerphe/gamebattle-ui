@@ -6,7 +6,13 @@ import FileBrowser from "./files";
 import FileEditor from "./editor";
 import Builder from "./builder";
 
-export default function EditorLayout({ api_route }: { api_route: string }) {
+export default function EditorLayout({
+  api_route,
+  game_id = null,
+}: {
+  api_route: string;
+  game_id?: string | null;
+}) {
   const [user] = useAuthState(auth);
   const [files, setFiles] = useState<{ path: string; content: string }[]>([]);
   const [active_file, setActiveFile] = useState<string | undefined>(undefined);
@@ -17,13 +23,16 @@ export default function EditorLayout({ api_route }: { api_route: string }) {
   useEffect(() => {
     (async () => {
       if (user) {
-        const response = await fetch(`${api_route}/game`, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${await user.getIdToken()}`,
-          },
-        });
+        const response = await fetch(
+          game_id ? `${api_route}/admin/game/${game_id}` : `${api_route}/game`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${await user.getIdToken()}`,
+            },
+          }
+        );
         if (!response.ok) {
           console.error(response);
           return;
@@ -32,7 +41,7 @@ export default function EditorLayout({ api_route }: { api_route: string }) {
         setFiles(files);
       }
     })();
-  }, [user]);
+  }, [user, game_id]);
 
   const save_file = async (path: string, content: string) => {
     if (!user) {
@@ -49,7 +58,7 @@ export default function EditorLayout({ api_route }: { api_route: string }) {
         "Content-Type": "application/json",
         Authorization: `Bearer ${await user.getIdToken()}`,
       },
-      body: JSON.stringify({ filename: path, content }),
+      body: JSON.stringify({ filename: path, content, game_id: game_id }),
     });
     if (!response.ok) {
       console.error(response);
@@ -63,13 +72,18 @@ export default function EditorLayout({ api_route }: { api_route: string }) {
       console.error("User not logged in");
       return;
     }
-    const response = await fetch(`${api_route}/game/${path}`, {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${await user.getIdToken()}`,
-      },
-    });
+    const response = await fetch(
+      game_id
+        ? `${api_route}/admin/game/${game_id}/${path}`
+        : `${api_route}/game/${path}`,
+      {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${await user.getIdToken()}`,
+        },
+      }
+    );
     if (!response.ok) {
       console.error(response);
       return;
@@ -83,6 +97,7 @@ export default function EditorLayout({ api_route }: { api_route: string }) {
           files={files}
           api_route={api_route}
           modified_files={modified_files}
+          game_id={game_id}
         />
         <FileBrowser
           files={files}

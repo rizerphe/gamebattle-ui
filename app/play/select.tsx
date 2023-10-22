@@ -42,6 +42,9 @@ export default function Select({ api_route }: { api_route: string }) {
       const mapped = Object.keys(data).map((uuid) =>
         session_schema.parse({ id: uuid, ...data[uuid] })
       );
+      if (mapped.length === 1) {
+        setRedirectDestination(`/play/${mapped[0].id}`);
+      }
       setSessions(mapped);
     })();
   }, [user?.uid]);

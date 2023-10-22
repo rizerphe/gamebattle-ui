@@ -9,10 +9,12 @@ export default function Builder({
   files,
   api_route,
   modified_files,
+  game_id = null,
 }: {
   files: { path: string; content: string }[];
   api_route: string;
   modified_files: { path: string; content: string }[];
+  game_id?: string | null;
 }) {
   const [user] = useAuthState(auth);
   const [isLoading, setIsLoading] = useState(true);
@@ -29,13 +31,18 @@ export default function Builder({
   useEffect(() => {
     (async () => {
       if (user) {
-        const response = await fetch(`${api_route}/game/meta`, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${await user.getIdToken()}`,
-          },
-        });
+        const response = await fetch(
+          game_id
+            ? `${api_route}/admin/game/${game_id}/meta`
+            : `${api_route}/game/meta`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${await user.getIdToken()}`,
+            },
+          }
+        );
         if (!response.ok) {
           console.error(response);
           return;
@@ -50,7 +57,7 @@ export default function Builder({
   const validate_name = (name?: string) => name;
 
   return built ? (
-    redirect("/play/own/" + built)
+    redirect("/play/own/" + built + (game_id ? `/${game_id}` : ""))
   ) : (
     <>
       <div className="flex flex-row items-center gap-2 p-2 cursor-pointer bg-zinc-700">
@@ -132,7 +139,7 @@ export default function Builder({
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${await user?.getIdToken()}`,
               },
-              body: JSON.stringify(metadata),
+              body: JSON.stringify({ ...metadata, game_id }),
             });
             const response = await fetch(`${api_route}/sessions/own`, {
               method: "POST",
@@ -141,8 +148,7 @@ export default function Builder({
                 Authorization: `Bearer ${await user?.getIdToken()}`,
               },
               body: JSON.stringify({
-                name: metadata.name,
-                file: metadata.file,
+                game_id,
               }),
             });
             if (!response.ok) {
