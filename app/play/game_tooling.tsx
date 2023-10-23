@@ -290,7 +290,7 @@ function ScoreButton({
           ? "bg-black outline outline-zinc-600 outline-1"
           : "bg-transparent hover:bg-black"
       }`}
-      onClick={setPreference}
+      onClick={allGamesOver ? setPreference : undefined}
     >
       {allGamesOver ? (
         image_source ? (
@@ -349,6 +349,7 @@ export default function GameTooling({
   output,
   restarting,
   setRestarting,
+  n_games,
 }: {
   api_route: string;
   session_id: string;
@@ -361,6 +362,7 @@ export default function GameTooling({
   output: string;
   restarting: boolean;
   setRestarting: (restarting: boolean) => void;
+  n_games: number;
 }) {
   const [user] = useAuthState(auth);
   const [redirecting, setRedirecting] = useState<boolean>(false);
@@ -402,7 +404,7 @@ export default function GameTooling({
         game_id={game_id}
         output={output}
       />
-      {gameOver ? (
+      {n_games > 1 && gameOver ? (
         <>
           <ScoreButton
             ownScore={1 - game_id}
@@ -438,7 +440,7 @@ export default function GameTooling({
           />
         </>
       ) : null}
-      {score === null || score === undefined ? null : (
+      {n_games <= 1 || score === null || score === undefined ? null : (
         <span
           className="relative text-xs text-bold text-green-400 rounded p-4 flex flex-row justify-center items-center gap-2 cursor-pointer bg-black hover:bg-zinc-950 whitespace-nowrap group"
           onClick={nextSession}

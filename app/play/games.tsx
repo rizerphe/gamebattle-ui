@@ -31,6 +31,7 @@ function GameBox({
   allGamesOver,
   score,
   setScore,
+  n_games,
 }: {
   name: string;
   api_route: string;
@@ -43,6 +44,7 @@ function GameBox({
   allGamesOver: boolean;
   score: number | null;
   setScore: (score: number) => void;
+  n_games: number;
 }) {
   const ref = useRef<HTMLInputElement>(null);
   const [output, setOutput] = useState<string>("");
@@ -73,6 +75,7 @@ function GameBox({
               output={output}
               restarting={restarting}
               setRestarting={setRestarting}
+              n_games={n_games}
             />
             {connected || !gameRunning ? null : (
               <span className="font-bold text-red-600">connecting...</span>
@@ -178,6 +181,7 @@ export default function Games({
             }}
             score={score}
             setScore={setScore}
+            n_games={session.games.length}
           />
         )
       )}
