@@ -438,7 +438,7 @@ export default function GameTooling({
           />
         </>
       ) : null}
-      {score === null ? null : (
+      {score === null || score === undefined ? null : (
         <span
           className="relative text-xs text-bold text-green-400 rounded p-4 flex flex-row justify-center items-center gap-2 cursor-pointer bg-black hover:bg-zinc-950 whitespace-nowrap group"
           onClick={nextSession}
