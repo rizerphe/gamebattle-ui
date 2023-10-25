@@ -102,7 +102,9 @@ export default function Game({
         const message = JSON.parse(e.data);
         if (message.type === "stdout") {
           setGameRunning(true);
-          setOutput((output) => (newConnection ? "" : output) + message.data);
+          setOutput(
+            (output: string) => (newConnection ? "" : output) + message.data
+          );
         }
         if (message.type === "bye") {
           setGameRunning(false);
