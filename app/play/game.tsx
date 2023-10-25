@@ -19,7 +19,7 @@ export function GameText({
   const ansi = Ansi({ children: content });
   ansi.props.children.push(
     <input
-      className="bg-transparent text-white p-0 outline-none m-0"
+      className="bg-transparent text-white p-0 outline-none m-0 w-[calc(100%-5rem)]"
       type="text"
       value={input}
       onChange={(e) => setInput(e.target.value)}
@@ -47,7 +47,7 @@ export function GameText({
     <div
       className="p-4 flex flex-col whitespace-pre-wrap overflow-y-auto scrollbar-none"
       style={{
-        maxHeight: "calc(100vh - 16rem)",
+        maxHeight: "calc(100vh - 18rem)",
       }}
       onClick={() => inputRef?.current?.focus?.()}
     >
@@ -80,7 +80,8 @@ export default function Game({
   const [user] = useAuthState(auth);
   const [newConnection, setNewConnection] = useState<boolean>(true);
   const [idToken, setIdToken] = useState<string | null>(null);
-  const { sendMessage } = useWebSocket(
+  const [nextMessage, setNextMessage] = useState<string | null>(null);
+  const { readyState, sendMessage } = useWebSocket(
     `${api_route}/sessions/${session_id}/${game}/ws`,
     {
       shouldReconnect: () => true,
@@ -112,6 +113,13 @@ export default function Game({
   );
 
   useEffect(() => {
+    if (readyState === 1 && nextMessage) {
+      sendMessage(nextMessage);
+      setNextMessage(null);
+    }
+  }, [readyState, nextMessage]);
+
+  useEffect(() => {
     if (!user) return;
     user.getIdToken().then(setIdToken);
   }, [user?.uid]);
@@ -119,7 +127,7 @@ export default function Game({
   return (
     <GameText
       content={output}
-      send={(input: string) => sendMessage(input)}
+      send={(input: string) => setNextMessage(input)}
       inputRef={inputRef}
     />
   );
