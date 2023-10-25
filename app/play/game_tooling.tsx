@@ -368,7 +368,7 @@ export default function GameTooling({
   const [redirecting, setRedirecting] = useState<boolean>(false);
 
   const nextSession = async () => {
-    await fetch(`${api_route}/sessions/${session_id}/`, {
+    await fetch(`${api_route}/sessions/${session_id}`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
