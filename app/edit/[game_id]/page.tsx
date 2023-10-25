@@ -17,8 +17,7 @@ export default function EditorPage({
           <span className="text-green-400">Be careful!</span>
         </span>
         <span>
-          Don&apos&apos;t forget to build the game when you&apos;re done
-          editing.
+          Don&apos;t forget to build the game when you&apos;re done editing.
         </span>
       </div>
       <EditorLayout api_route={api_route} game_id={game_id} />
