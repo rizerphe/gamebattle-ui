@@ -99,7 +99,7 @@ function ReportButton({
       }),
     });
     if (restart_session) {
-      await fetch(`${api_route}/sessions/${session_id}/`, {
+      await fetch(`${api_route}/sessions/${session_id}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
