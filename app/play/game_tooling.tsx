@@ -86,7 +86,7 @@ function ReportButton({
 
   const reportGame = async (restart_session: boolean = false) => {
     setReporting(true);
-    fetch(`${api_route}/sessions/${session_id}/${game_id}/report`, {
+    await fetch(`${api_route}/sessions/${session_id}/${game_id}/report`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
