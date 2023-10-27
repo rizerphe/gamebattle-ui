@@ -154,6 +154,7 @@ export default function Games({
   useEffect(() => {
     if (!user) return;
     const fetch_session = async () => {
+      setSession(null);
       const response = await fetch(`${api_route}/sessions/${session_id}`, {
         headers: {
           Authorization: `Bearer ${await user.getIdToken()}`,
