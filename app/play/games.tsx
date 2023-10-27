@@ -32,6 +32,8 @@ function GameBox({
   score,
   setScore,
   n_games,
+  gameRestarter,
+  setGameRestarter,
 }: {
   name: string;
   api_route: string;
@@ -45,6 +47,8 @@ function GameBox({
   score: number | null;
   setScore: (score: number) => void;
   n_games: number;
+  gameRestarter: number;
+  setGameRestarter: (gameRestarter: number) => void;
 }) {
   const ref = useRef<HTMLInputElement>(null);
   const [output, setOutput] = useState<string>("");
@@ -76,6 +80,8 @@ function GameBox({
               restarting={restarting}
               setRestarting={setRestarting}
               n_games={n_games}
+              gameRestarter={gameRestarter}
+              setGameRestarter={setGameRestarter}
             />
             {connected || !gameRunning ? null : (
               <span className="font-bold text-red-600">connecting...</span>
@@ -123,6 +129,7 @@ export default function Games({
   const [session, setSession] = useState<Session | null>(null);
   const [gamesOver, setGamesOver] = useState<boolean[]>([]);
   const [score, setScore] = useState<number | null>(null);
+  const [gameRestarter, setGameRestarter] = useState<number>(0);
 
   useEffect(() => {
     const getScore = async () => {
@@ -142,7 +149,7 @@ export default function Games({
       setScore(data?.first_score);
     };
     getScore();
-  }, [session_id, user?.uid]);
+  }, [session_id, user?.uid, gameRestarter]);
 
   useEffect(() => {
     if (!user) return;
@@ -158,7 +165,7 @@ export default function Games({
       setGamesOver(session.games.map((game) => game.over));
     };
     fetch_session();
-  }, [user?.uid, api_route, session_id]);
+  }, [user?.uid, api_route, session_id, gameRestarter]);
 
   return session ? (
     <>
@@ -182,6 +189,8 @@ export default function Games({
             score={score}
             setScore={setScore}
             n_games={session.games.length}
+            gameRestarter={gameRestarter}
+            setGameRestarter={setGameRestarter}
           />
         )
       )}

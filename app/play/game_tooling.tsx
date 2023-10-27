@@ -64,11 +64,15 @@ function ReportButton({
   session_id,
   game_id,
   output = "",
+  gameRestarter,
+  setGameRestarter,
 }: {
   api_route: string;
   session_id: string;
   game_id: number;
   output?: string;
+  gameRestarter: number;
+  setGameRestarter: (gameRestarter: number) => void;
 }) {
   const [user] = useAuthState(auth);
   const [confirmation, setConfirmation] = useState<boolean>(false);
@@ -84,7 +88,10 @@ function ReportButton({
     redirect("/play");
   }
 
-  const reportGame = async (restart_session: boolean = false) => {
+  const reportGame = async (
+    restart_game: boolean = false,
+    restart_session: boolean = false
+  ) => {
     setReporting(true);
     await fetch(`${api_route}/sessions/${session_id}/${game_id}/report`, {
       method: "POST",
@@ -95,9 +102,13 @@ function ReportButton({
       body: JSON.stringify({
         short_reason: shortReason,
         reason: reason,
+        restart_game: restart_game,
         output: includeOutput ? output : "",
       }),
     });
+    if (restart_game) {
+      setGameRestarter(gameRestarter + 1);
+    }
     if (restart_session) {
       await fetch(`${api_route}/sessions/${session_id}`, {
         method: "DELETE",
@@ -222,12 +233,22 @@ function ReportButton({
               Report
             </button>
             <button
-              className="bg-green-700 hover:bg-green-600 text-white font-bold py-2 px-4 flex-1 border-green-600 border-2"
+              className="bg-zinc-700 hover:bg-zinc-600 text-white font-bold py-2 px-4 flex-1 border-zinc-600 border-2"
               onClick={() => {
-                reportGame(true);
+                reportGame(false, true);
               }}
             >
               {reporting ? "Reporting..." : "Report and start a new session"}
+            </button>
+            <button
+              className="bg-green-700 hover:bg-green-600 text-white font-bold py-2 px-4 flex-1 border-green-600 border-2"
+              onClick={(e) => {
+                reportGame(true, false);
+                setConfirmation(false);
+                e.stopPropagation();
+              }}
+            >
+              {reporting ? "Reporting..." : "Report and start a new game"}
             </button>
           </div>
         </div>
@@ -350,6 +371,8 @@ export default function GameTooling({
   restarting,
   setRestarting,
   n_games,
+  gameRestarter,
+  setGameRestarter,
 }: {
   api_route: string;
   session_id: string;
@@ -363,6 +386,8 @@ export default function GameTooling({
   restarting: boolean;
   setRestarting: (restarting: boolean) => void;
   n_games: number;
+  gameRestarter: number;
+  setGameRestarter: (gameRestarter: number) => void;
 }) {
   const [user] = useAuthState(auth);
   const [redirecting, setRedirecting] = useState<boolean>(false);
@@ -398,12 +423,16 @@ export default function GameTooling({
         setRestarting={setRestarting}
         setGameRunning={setGameRunning}
       />
-      <ReportButton
-        api_route={api_route}
-        session_id={session_id}
-        game_id={game_id}
-        output={output}
-      />
+      {score == null ? (
+        <ReportButton
+          api_route={api_route}
+          session_id={session_id}
+          game_id={game_id}
+          output={output}
+          gameRestarter={gameRestarter}
+          setGameRestarter={setGameRestarter}
+        />
+      ) : null}
       {n_games > 1 && gameOver ? (
         <>
           <ScoreButton
