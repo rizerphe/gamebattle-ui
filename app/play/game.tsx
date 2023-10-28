@@ -75,7 +75,7 @@ export default function Game({
   gameRunning: boolean;
   setGameRunning: (running: boolean) => void;
   output?: string;
-  setOutput?: (output: string) => void;
+  setOutput?: (setter: (output: string) => string) => void;
 }) {
   const [user] = useAuthState(auth);
   const [newConnection, setNewConnection] = useState<boolean>(true);
@@ -88,6 +88,7 @@ export default function Game({
       reconnectAttempts: 10,
       reconnectInterval: 1000,
       onOpen: () => {
+        setOutput(() => "");
         idToken && sendMessage(idToken);
         setConnected(true);
         setNewConnection(true);
@@ -102,7 +103,7 @@ export default function Game({
         const message = JSON.parse(e.data);
         if (message.type === "stdout") {
           setGameRunning(true);
-          setOutput((newConnection ? "" : output) + message.data);
+          setOutput((output: string) => output + message.data);
         }
         if (message.type === "bye") {
           setGameRunning(false);

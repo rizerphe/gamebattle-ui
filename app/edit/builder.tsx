@@ -162,6 +162,33 @@ export default function Builder({
         >
           {building ? <span>Building...</span> : <span>Build and Test</span>}
         </div>
+        {game_id ? (
+          <div
+            className="flex flex-row items-center justify-center gap-2 p-2 rounded bg-zinc-700 hover:bg-zinc-600"
+            onClick={async () => {
+              setBuilding(true);
+              const response = await fetch(`${api_route}/sessions/own`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${await user?.getIdToken()}`,
+                },
+                body: JSON.stringify({
+                  game_id,
+                }),
+              });
+              if (!response.ok) {
+                console.error(response);
+                setBuilding(false);
+                return;
+              }
+              const session = await response.json();
+              setBuilt(session);
+            }}
+          >
+            <span>Just Run</span>
+          </div>
+        ) : null}
         {modified_files.length ? (
           <span className="text-zinc-500 text-sm">
             Save your changes before building.
