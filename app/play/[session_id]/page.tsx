@@ -16,7 +16,7 @@ export default function Play({
   if (!api_ws_route) return <span>API_WS_ROUTE not set</span>;
 
   return (
-    <div className="flex flex-col items-stretch flex-1 gap-4 w-full">
+    <div className="flex flex-col items-stretch flex-1 gap-4 w-full max-w-screen">
       <div className="flex flex-row justify-between items-center p-2 rounded-md bg-black bg-opacity-90">
         <TitleBar api_route={api_route} session_id={session_id} />
         <div className="rounded-full bg-gray-800 h-4 w-4">

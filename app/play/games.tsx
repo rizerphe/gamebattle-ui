@@ -61,6 +61,7 @@ function GameBox({
       className={`flex flex-col flex-1 ${
         gameRunning ? "bg-black" : "bg-zinc-900"
       } bg-opacity-90 rounded-lg items-stretch`}
+      style={{ maxWidth: `calc(${100 / n_games}% - ${(n_games - 1) / 2}rem` }}
       onClick={() => ref.current?.focus?.()}
     >
       <GameContainer
@@ -202,6 +203,7 @@ export default function Games({
         <div
           key={i}
           className="flex flex-col flex-1 bg-black bg-opacity-90 rounded-lg items-stretch"
+          style={{ maxWidth: `${100 / n_placeholder_games}%` }}
         >
           <GameContainer tooling={tooling} name="Loading..." />
         </div>

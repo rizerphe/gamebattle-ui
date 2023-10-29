@@ -19,7 +19,7 @@ export function GameText({
   const ansi = Ansi({ children: content });
   ansi.props.children.push(
     <input
-      className="bg-transparent text-white p-0 outline-none m-0 w-[calc(100%-5rem)]"
+      className="bg-transparent text-white p-0 outline-none m-0"
       type="text"
       value={input}
       onChange={(e) => setInput(e.target.value)}
@@ -45,7 +45,7 @@ export function GameText({
 
   return (
     <div
-      className="p-4 flex flex-col whitespace-pre-wrap overflow-y-auto scrollbar-none"
+      className="p-4 flex flex-col whitespace-pre-wrap overflow-y-auto scrollbar-none max-w-full"
       style={{
         maxHeight: "calc(100vh - 18rem)",
       }}
