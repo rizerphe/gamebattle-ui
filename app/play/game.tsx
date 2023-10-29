@@ -34,14 +34,12 @@ export function GameText({
     />
   );
 
-  if (inputRef?.current === document.activeElement) {
-    setTimeout(() => {
-      inputRef?.current?.scrollIntoView?.({
-        block: "end",
-        inline: "nearest",
-      });
-    }, 0);
-  }
+  setTimeout(() => {
+    inputRef?.current?.scrollIntoView?.({
+      block: "end",
+      inline: "nearest",
+    });
+  }, 0);
 
   return (
     <div
