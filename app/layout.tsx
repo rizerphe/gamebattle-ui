@@ -2,7 +2,6 @@ import "./globals.css";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import NavBar from "./navbar";
-import Image from "next/image";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -28,13 +27,9 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <div className="flex flex-col items-stretch min-h-screen h-fit relative">
-          <Image
-            src="/bg.png"
-            alt=""
-            objectFit="cover"
-            layout="fill"
-            className="absolute inset-0 z-[-1]"
-          />
+          <div className="fixed object-cover inset-0 z-[-1]">
+            <img src="/bg.png" alt="" className="w-full h-full object-cover" />
+          </div>
           <NavBar />
           <Content>{children}</Content>
         </div>
