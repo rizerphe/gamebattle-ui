@@ -43,7 +43,10 @@ export default function Ratings({ api_route }: { api_route: string }) {
 
   return ratings.map(([metadata, position], index) => (
     <>
-      <span key={index * 4} className="text-2xl font-bold m-2 flex flex-col">
+      <span
+        key={index * 4}
+        className="text-2xl font-bold p-2 flex flex-col border-t border-gray-500"
+      >
         {metadata.author}
         <span className="text-gray-400 text-sm flex flex-row">
           {metadata.email}
@@ -51,13 +54,13 @@ export default function Ratings({ api_route }: { api_route: string }) {
           {metadata.name}
         </span>
       </span>
-      <span key={index * 4 + 1} className="text-xl font-bold m-2">
+      <span key={index * 4 + 1} className="text-xl font-bold p-4 border-t border-gray-500">
         {position.elo.toFixed(0)} <span className="text-green-200">ELO</span> (
         {position.place}&apos;th)
       </span>
       <Link
         key={index * 4 + 2}
-        className={`text-xl font-bold m-2 ${
+        className={`text-xl font-bold p-4 border-t border-gray-500 ${
           position.reports > 0 ? "hover:underline" : ""
         } ${
           position.reports > 5
@@ -72,7 +75,7 @@ export default function Ratings({ api_route }: { api_route: string }) {
       </Link>
       <span
         key={index * 4 + 3}
-        className={`text-xl font-bold m-2 ${
+        className={`text-xl font-bold p-4 border-t border-gray-500 ${
           position.accumulation < 5 ? "text-red-200" : "text-blue-200"
         }`}
       >
