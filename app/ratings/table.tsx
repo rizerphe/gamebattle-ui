@@ -53,7 +53,7 @@ export default function Ratings({ api_route }: { api_route: string }) {
       </span>
       <span key={index * 4 + 1} className="text-xl font-bold m-2">
         {position.elo.toFixed(0)} <span className="text-green-200">ELO</span> (
-        {position.place}'th)
+        {position.place}&apos;th)
       </span>
       <Link
         key={index * 4 + 2}
