@@ -81,7 +81,7 @@ export default function Stats({ api_route }: { api_route: string }) {
   return loading || stats.loading ? (
     <span className="font-bold text-red-800">Loading...</span>
   ) : stats.stats?.permitted ? (
-    stats.stats?.started ? (
+    <>
       <div className="flex flex-col justify-evenly items-stretch gap-4">
         <div className="flex flex-col items-center gap-2">
           <span className="font-bold text-xl text-green-800">Tested games</span>
@@ -122,14 +122,14 @@ export default function Stats({ api_route }: { api_route: string }) {
           </span>
         </div>
       </div>
-    ) : (
-      <>
-        <Image src="/widget.png" alt="Widget" width={256} height={256} />
-        <span className="font-bold text-red-800">
-          Competition not yet started.
-        </span>
-      </>
-    )
+      {stats.stats?.started ? null : (
+        <>
+          <span className="font-bold text-red-800">
+            Competition not currently started.
+          </span>
+        </>
+      )}
+    </>
   ) : (
     <div className="font-bold text-red-800 flex flex-col gap-2">
       <span>Permission denied.</span>
