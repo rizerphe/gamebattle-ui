@@ -4,7 +4,7 @@ import { useAuthState } from "react-firebase-hooks/auth";
 import { useState, useEffect } from "react";
 import { z } from "zod";
 import Link from "next/link";
-import { FaFilter } from "react-icons/fa";
+import { FaFilter, FaDownload } from "react-icons/fa";
 
 const RatingsSchema = z.array(
   z.tuple([
@@ -15,7 +15,7 @@ const RatingsSchema = z.array(
       email: z.string(),
     }),
     z.object({
-      elo: z.number(),
+      elo: z.number().or(z.null()),
       place: z.number(),
       accumulation: z.number(),
       reports: z.number(),
@@ -44,6 +44,26 @@ export default function Ratings({ api_route }: { api_route: string }) {
     getLeaderboard();
   }, [user?.uid]);
 
+  const download_csv_data = async () => {
+    const csv_data = await fetch(`${api_route}/allstats/csv`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${await user?.getIdToken()}`,
+      },
+    }).then((res) => res.text());
+    const blob = new Blob([csv_data], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.setAttribute("hidden", "");
+    a.setAttribute("href", url);
+    a.setAttribute("download", "ratings.csv");
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  };
+
   return (
     <>
       <span className="text-2xl font-bold m-2 text-green-300">Author</span>
@@ -59,6 +79,10 @@ export default function Ratings({ api_route }: { api_route: string }) {
         Games played
         <FaFilter
           onClick={() => setFilterByAccumulation(!filterByAccumulation)}
+          className="text-sm cursor-pointer text-gray-400 hover:text-gray-200"
+        />
+        <FaDownload
+          onClick={download_csv_data}
           className="text-sm cursor-pointer text-gray-400 hover:text-gray-200"
         />
       </span>
@@ -85,9 +109,15 @@ export default function Ratings({ api_route }: { api_route: string }) {
               key={index * 4 + 1}
               className="text-xl font-bold p-4 border-t border-gray-500"
             >
-              {position.elo.toFixed(0)}{" "}
-              <span className="text-green-200">ELO</span> ({position.place}
-              &apos;th)
+              {position.elo ? (
+                <>
+                  {position.elo.toFixed(0)}{" "}
+                  <span className="text-green-200">ELO</span> ({position.place}
+                  &apos;th)
+                </>
+              ) : (
+                <span className="text-red-200">Unranked</span>
+              )}
             </span>
             <Link
               key={index * 4 + 2}
