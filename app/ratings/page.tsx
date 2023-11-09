@@ -5,7 +5,7 @@ export default function Leaderboard() {
   if (!api_route) throw new Error("API_ROUTE not set");
 
   return (
-    <div className="bg-black bg-opacity-90 rounded-lg w-full overflow-hidden grid grid-cols-4">
+    <div className="bg-black bg-opacity-90 rounded-lg w-full overflow-hidden grid grid-cols-5">
       <Ratings api_route={api_route} />
     </div>
   );

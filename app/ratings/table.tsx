@@ -19,6 +19,7 @@ const RatingsSchema = z.array(
       place: z.number(),
       accumulation: z.number(),
       reports: z.number(),
+      times_played: z.number(),
     }),
   ])
 );
@@ -75,8 +76,11 @@ export default function Ratings({ api_route }: { api_route: string }) {
           className="text-sm cursor-pointer text-gray-400 hover:text-gray-200"
         />
       </span>
+      <span className="text-2xl font-bold m-2 text-green-300">
+        Times game was played
+      </span>
       <span className="text-2xl font-bold m-2 text-green-300 flex flex-row items-center gap-2">
-        Games played
+        Comparisons made
         <FaFilter
           onClick={() => setFilterByAccumulation(!filterByAccumulation)}
           className="text-sm cursor-pointer text-gray-400 hover:text-gray-200"
@@ -95,7 +99,7 @@ export default function Ratings({ api_route }: { api_route: string }) {
         .map(([metadata, position], index) => (
           <>
             <span
-              key={index * 4}
+              key={index * 5}
               className="text-2xl font-bold p-2 flex flex-col border-t border-gray-500"
             >
               {metadata.author}
@@ -106,7 +110,7 @@ export default function Ratings({ api_route }: { api_route: string }) {
               </span>
             </span>
             <span
-              key={index * 4 + 1}
+              key={index * 5 + 1}
               className="text-xl font-bold p-4 border-t border-gray-500"
             >
               {position.elo ? (
@@ -120,7 +124,7 @@ export default function Ratings({ api_route }: { api_route: string }) {
               )}
             </span>
             <Link
-              key={index * 4 + 2}
+              key={index * 5 + 3}
               className={`text-xl font-bold p-4 border-t border-gray-500 ${
                 position.reports > 0 ? "hover:underline" : ""
               } ${
@@ -135,7 +139,13 @@ export default function Ratings({ api_route }: { api_route: string }) {
               {position.reports} Reports
             </Link>
             <span
-              key={index * 4 + 3}
+              key={index * 5 + 2}
+              className="text-xl font-bold p-4 border-t border-gray-500"
+            >
+              {position.times_played}
+            </span>
+            <span
+              key={index * 5 + 4}
               className={`text-xl font-bold p-4 border-t border-gray-500 ${
                 position.accumulation < 5 ? "text-red-200" : "text-blue-200"
               }`}
