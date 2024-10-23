@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { auth } from "./firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { z } from "zod";
-import Image from "next/image";
 
 export function ProgressBar({
   progress,
@@ -14,13 +13,13 @@ export function ProgressBar({
 }) {
   return (
     <div className="relative w-full h-full min-h-[2rem]">
-      <div className="absolute inset-0 flex flex-row items-center justify-center rounded overflow-hidden bg-orange-500">
+      <div className="absolute inset-0 flex flex-row items-center justify-center rounded overflow-hidden bg-cyan-950">
         <span
-          className="absolute left-0 top-0 bottom-0 rounded bg-green-500"
+          className="absolute left-0 top-0 bottom-0 rounded bg-zinc-950"
           style={{ width: `${progress * 100}%` }}
         />
       </div>
-      <div className="absolute inset-0 flex flex-row items-center justify-center text-zinc-950">
+      <div className="absolute inset-0 flex flex-row items-center justify-center text-zinc-100 font-black">
         {children}
       </div>
     </div>
@@ -84,7 +83,7 @@ export default function Stats({ api_route }: { api_route: string }) {
     <>
       <div className="flex flex-col justify-evenly items-stretch gap-4">
         <div className="flex flex-col items-center gap-2">
-          <span className="font-bold text-xl text-green-800">Tested games</span>
+          <span className="font-bold text-xl text-zinc-800">Tested games</span>
           <ProgressBar
             progress={
               (stats.stats?.accumulation ?? 0) /
@@ -98,7 +97,7 @@ export default function Stats({ api_route }: { api_route: string }) {
           </span>
         </div>
         <div className="flex flex-col items-center gap-2">
-          <span className="font-bold text-xl text-green-800">
+          <span className="font-bold text-xl text-zinc-800">
             Your performance
           </span>
           <ProgressBar
@@ -112,7 +111,7 @@ export default function Stats({ api_route }: { api_route: string }) {
           {stats?.stats?.place ? (
             <div className="flex flex-row items-center justify-start gap-2">
               <span className="font-bold">You are at</span>
-              <span className="font-bold text-xl text-green-800">
+              <span className="font-bold text-xl text-zinc-800">
                 {ordinal(Math.round(stats?.stats?.place ?? 0))} place
               </span>
             </div>
