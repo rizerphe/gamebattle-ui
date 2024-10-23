@@ -146,9 +146,6 @@ function EditorTabs({
         >
           Save
         </button>
-        <Link href="/" className="text-white font-bold p-4 bg-zinc-950">
-          <VscChromeClose />
-        </Link>
       </div>
       <Modal
         isOpen={confirmation}
