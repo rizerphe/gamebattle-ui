@@ -23,6 +23,8 @@ export default function CodeSummary({ api_route }: { api_route: string }) {
         }
         const summary = await response.json();
         setSummary(summary);
+      } else {
+        setSummary("Log in to start creating!");
       }
     })();
   }, [user]);
