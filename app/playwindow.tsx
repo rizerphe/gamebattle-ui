@@ -27,15 +27,11 @@ function Window({
 export default function PlayWindow({ disabled }: { disabled?: boolean }) {
   const [user, loading] = useAuthState(auth);
 
-  // TODO: proper competitio end handling
+  // TODO: proper competition end handling
 
-  return loading ? (
+  return loading || user ? (
     <Window>
-      <span className="text-gray-400">Loading...</span>
-    </Window>
-  ) : user ? (
-    <Window>
-      <Button disabled={true} href="/edit">
+      <Button disabled={false} href="/edit">
         Create
       </Button>
       <Button disabled={disabled} href="/play">

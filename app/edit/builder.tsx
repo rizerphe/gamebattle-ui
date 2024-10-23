@@ -118,8 +118,17 @@ export default function Builder({
             options={files.filter(
               (file) => file.path.endsWith(".py") && !file.path.includes(" ")
             )}
+            noOptionsMessage={() => "Create a Python file first."}
           />
         </div>
+        {files.find(
+          (file) => file.path.endsWith(".py") && file.path.includes(" ")
+        ) && (
+          <span className="text-zinc-500 text-sm">
+            Warning: Python files with spaces in their name are not supported as
+            entry points.
+          </span>
+        )}
         <div
           className={`flex flex-row items-center justify-center gap-2 p-2 rounded ${
             modified_files.length ||
