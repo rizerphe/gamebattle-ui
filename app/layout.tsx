@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import NavBar from "./navbar";
 import Providers from "./providers";
+import InteractiveDotBackground from "./background";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -29,7 +30,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <div className="flex flex-col items-stretch min-h-screen h-fit relative">
           <div className="fixed object-cover inset-0 z-[-1]">
-            <img src="/bg.png" alt="" className="w-full h-full object-cover" />
+            <InteractiveDotBackground />
           </div>
           <NavBar />
           <Providers>
