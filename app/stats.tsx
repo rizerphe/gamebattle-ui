@@ -83,7 +83,7 @@ export default function Stats({ api_route }: { api_route: string }) {
     <>
       <div className="flex flex-col justify-evenly items-stretch gap-4">
         <div className="flex flex-col items-center gap-2">
-          <span className="font-bold text-xl text-zinc-800">Tested games</span>
+          <span className="font-bold text-xl text-gray-500">Tested games</span>
           <ProgressBar
             progress={
               (stats.stats?.accumulation ?? 0) /
@@ -97,7 +97,7 @@ export default function Stats({ api_route }: { api_route: string }) {
           </span>
         </div>
         <div className="flex flex-col items-center gap-2">
-          <span className="font-bold text-xl text-zinc-800">
+          <span className="font-bold text-xl text-gray-500">
             Your performance
           </span>
           <ProgressBar
