@@ -287,11 +287,13 @@ function ScoreButton({
   };
 
   const image_source = {
+    0: "/like.png",
     1: "/cat-1.png",
     2: "/cat-2.png",
     3: "/cat-3.png",
   }[Math.abs(0.5 - ownScore) * 8 - 1];
   const image_source_hover = {
+    0: "/like.png",
     1: "/cat-1.png",
     2: "/cat-2.png",
     3: "/cat-3-hover.png",
