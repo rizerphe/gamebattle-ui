@@ -45,7 +45,7 @@ export default function EditorLayout({
             return;
           }
           const files = await response.json();
-          return files;
+          return files as { path: string; content: string }[];
         }
       },
       enabled: !!user,
@@ -87,25 +87,29 @@ export default function EditorLayout({
         queryKey: [game_id ? `files-${game_id}` : "files", user?.uid],
       });
 
-      const files = queryClient.getQueryData([
-        game_id ? `files-${game_id}` : "files",
-        user?.uid,
-        ,
-      ]);
+      const files: { path: string; content: string }[] | undefined =
+        queryClient.getQueryData([
+          game_id ? `files-${game_id}` : "files",
+          user?.uid,
+        ]);
 
-      queryClient.setQueryData(
-        [game_id ? `files-${game_id}` : "files", user?.uid],
-        [...files.filter((file) => file.path !== path), { path, content }]
-      );
+      if (files) {
+        queryClient.setQueryData(
+          [game_id ? `files-${game_id}` : "files", user?.uid],
+          [...files.filter((file) => file.path !== path), { path, content }]
+        );
+      }
 
       return { files };
     },
     onError: (err, newData, context) => {
       console.error(err);
-      queryClient.setQueryData(
-        [game_id ? `files-${game_id}` : "files", user?.uid],
-        context.files
-      );
+      if (context?.files) {
+        queryClient.setQueryData(
+          [game_id ? `files-${game_id}` : "files", user?.uid],
+          context?.files
+        );
+      }
     },
   });
   const save_file = async (path: string, content: string) => {
@@ -138,24 +142,29 @@ export default function EditorLayout({
         queryKey: [game_id ? `files-${game_id}` : "files", user?.uid],
       });
 
-      const files = queryClient.getQueryData([
-        game_id ? `files-${game_id}` : "files",
-        user?.uid,
-      ]);
+      const files: { path: string; content: string }[] | undefined =
+        queryClient.getQueryData([
+          game_id ? `files-${game_id}` : "files",
+          user?.uid,
+        ]);
 
-      queryClient.setQueryData(
-        [game_id ? `files-${game_id}` : "files", user?.uid],
-        files.filter((file) => file.path !== path)
-      );
+      if (files) {
+        queryClient.setQueryData(
+          [game_id ? `files-${game_id}` : "files", user?.uid],
+          files.filter((file) => file.path !== path)
+        );
+      }
 
       return { files };
     },
     onError: (err, newData, context) => {
       console.error(err);
-      queryClient.setQueryData(
-        [game_id ? `files-${game_id}` : "files", user?.uid],
-        context.files
-      );
+      if (context?.files) {
+        queryClient.setQueryData(
+          [game_id ? `files-${game_id}` : "files", user?.uid],
+          context?.files
+        );
+      }
     },
   });
 
