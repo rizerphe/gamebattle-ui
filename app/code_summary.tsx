@@ -22,9 +22,35 @@ export default function CodeSummary({ api_route }: { api_route: string }) {
           console.error(response);
           return;
         }
-        const summary = await response.json();
-        setSummary(summary);
-      } else {
+        const summary: string = await response.json();
+
+        let already_typed = "";
+
+        for (let i = 0; i < summary.length; i++) {
+          already_typed += `${summary[i]}`;
+
+          // Random trailing characters, from the full alphabet
+          const len_random = summary.length - i - 1;
+          const random = Array.from({ length: len_random }, () =>
+            String.fromCharCode(Math.floor(Math.random() * 26) + 97)
+          ).join("");
+          let target = already_typed + random;
+
+          // Except that we preserve all non-alphanumeric from the original summary
+          target = target
+            .split("")
+            .map((c, i) => {
+              if (summary[i].match(/[a-zA-Z0-9]/)) {
+                return c;
+              }
+              return summary[i];
+            })
+            .join("");
+
+          setSummary(target);
+          await new Promise((r) => setTimeout(r, 50));
+        }
+      } else if (!loading) {
         setSummary("Log in to start creating!");
       }
     })();
@@ -76,9 +102,11 @@ export default function CodeSummary({ api_route }: { api_route: string }) {
   }, [user]);
 
   return !loading && summary ? (
-    <div className="grid h-full place-content-center max-w-md">{summary}</div>
+    <div className="grid h-full place-content-center w-96 font-mono">
+      {summary}
+    </div>
   ) : (
-    <div className="grid h-full place-content-center max-w-md text-slate-400">
+    <div className="grid h-full place-content-center w-96 font-mono text-slate-400">
       thinking...
     </div>
   );
