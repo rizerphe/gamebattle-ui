@@ -102,11 +102,11 @@ export default function CodeSummary({ api_route }: { api_route: string }) {
   }, [user]);
 
   return !loading && summary ? (
-    <div className="grid h-full place-content-center w-96 font-mono">
+    <div className="grid h-full place-content-center w-96 max-w-full font-mono">
       {summary}
     </div>
   ) : (
-    <div className="grid h-full place-content-center w-96 font-mono text-slate-400">
+    <div className="grid h-full place-content-center w-96 max-w-full font-mono text-slate-400">
       thinking...
     </div>
   );
