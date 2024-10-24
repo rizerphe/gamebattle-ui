@@ -6,6 +6,8 @@ import FileBrowser from "./files";
 import FileEditor from "./editor";
 import Builder from "./builder";
 
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
 export default function EditorLayout({
   api_route,
   game_id = null,
@@ -14,84 +16,148 @@ export default function EditorLayout({
   game_id?: string | null;
 }) {
   const [user] = useAuthState(auth);
-  const [files, setFiles] = useState<{ path: string; content: string }[]>([]);
   const [active_file, setActiveFile] = useState<string | undefined>(undefined);
   const [modified_files, setModifiedFiles] = useState<
     { path: string; content: string }[]
   >([]);
 
-  useEffect(() => {
-    (async () => {
-      if (user) {
-        const response = await fetch(
-          game_id ? `${api_route}/admin/game/${game_id}` : `${api_route}/game`,
-          {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${await user.getIdToken()}`,
-            },
+  const queryClient = useQueryClient();
+
+  const files =
+    useQuery({
+      queryKey: [game_id ? `files-${game_id}` : "files", user?.uid],
+      queryFn: async () => {
+        if (user) {
+          const response = await fetch(
+            game_id
+              ? `${api_route}/admin/game/${game_id}`
+              : `${api_route}/game`,
+            {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${await user.getIdToken()}`,
+              },
+            }
+          );
+          if (!response.ok) {
+            console.error(response);
+            return;
           }
-        );
-        if (!response.ok) {
-          console.error(response);
-          return;
+          const files = await response.json();
+          return files;
         }
-        const files = await response.json();
-        setFiles(files);
-        if (files.length === 1) {
-          setActiveFile(files[0].path);
-        }
-      }
-    })();
-  }, [user, game_id]);
-
-  const save_file = async (path: string, content: string) => {
-    if (!user) {
-      console.error("User not logged in");
-      return;
-    }
-    setFiles((files) => [
-      ...files.filter((file) => file.path !== path),
-      { path, content },
-    ]);
-    const response = await fetch(`${api_route}/game`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${await user.getIdToken()}`,
       },
-      body: JSON.stringify({ filename: path, content, game_id: game_id }),
-    });
-    if (!response.ok) {
-      console.error(response);
-      return;
-    }
-  };
+      enabled: !!user,
+    }).data ?? [];
 
-  const delete_file = async (path: string) => {
-    setFiles((files) => files.filter((file) => file.path !== path));
-    if (!user) {
-      console.error("User not logged in");
-      return;
+  useEffect(() => {
+    if (files) {
+      if (files.length === 1) {
+        setActiveFile(files[0].path);
+      }
     }
-    const response = await fetch(
-      game_id
-        ? `${api_route}/admin/game/${game_id}/${path}`
-        : `${api_route}/game/${path}`,
-      {
-        method: "DELETE",
+  }, [files]);
+
+  const { mutate: save_file_raw } = useMutation({
+    mutationFn: async ({
+      path,
+      content,
+    }: {
+      path: string;
+      content: string;
+    }) => {
+      if (!user) {
+        throw "User not logged in";
+      }
+      const response = await fetch(`${api_route}/game`, {
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${await user.getIdToken()}`,
         },
+        body: JSON.stringify({ filename: path, content, game_id: game_id }),
+      });
+      if (!response.ok) {
+        throw response;
       }
-    );
-    if (!response.ok) {
-      console.error(response);
-      return;
-    }
+    },
+    onMutate: async ({ path, content }: { path: string; content: string }) => {
+      await queryClient.cancelQueries({
+        queryKey: [game_id ? `files-${game_id}` : "files", user?.uid],
+      });
+
+      const files = queryClient.getQueryData([
+        game_id ? `files-${game_id}` : "files",
+        user?.uid,
+        ,
+      ]);
+
+      queryClient.setQueryData(
+        [game_id ? `files-${game_id}` : "files", user?.uid],
+        [...files.filter((file) => file.path !== path), { path, content }]
+      );
+
+      return { files };
+    },
+    onError: (err, newData, context) => {
+      console.error(err);
+      queryClient.setQueryData(
+        [game_id ? `files-${game_id}` : "files", user?.uid],
+        context.files
+      );
+    },
+  });
+  const save_file = async (path: string, content: string) => {
+    save_file_raw({ path, content });
   };
+
+  const { mutate: delete_file } = useMutation({
+    mutationFn: async (path: string) => {
+      if (!user) {
+        throw "User not logged in";
+      }
+      const response = await fetch(
+        game_id
+          ? `${api_route}/admin/game/${game_id}/${path}`
+          : `${api_route}/game/${path}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${await user.getIdToken()}`,
+          },
+        }
+      );
+      if (!response.ok) {
+        throw response;
+      }
+    },
+    onMutate: async (path: string) => {
+      await queryClient.cancelQueries({
+        queryKey: [game_id ? `files-${game_id}` : "files", user?.uid],
+      });
+
+      const files = queryClient.getQueryData([
+        game_id ? `files-${game_id}` : "files",
+        user?.uid,
+      ]);
+
+      queryClient.setQueryData(
+        [game_id ? `files-${game_id}` : "files", user?.uid],
+        files.filter((file) => file.path !== path)
+      );
+
+      return { files };
+    },
+    onError: (err, newData, context) => {
+      console.error(err);
+      queryClient.setQueryData(
+        [game_id ? `files-${game_id}` : "files", user?.uid],
+        context.files
+      );
+    },
+  });
 
   return (
     <div className="flex flex-row flex-wrap items-stretch flex-1 w-full rounded-md overflow-hidden shadow-md shadow-black">

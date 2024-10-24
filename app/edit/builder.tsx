@@ -4,6 +4,7 @@ import { useAuthState } from "react-firebase-hooks/auth";
 import { useEffect, useState } from "react";
 import Select from "react-select";
 import { redirect } from "next/navigation";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export default function Builder({
   files,
@@ -17,55 +18,63 @@ export default function Builder({
   game_id?: string | null;
 }) {
   const [user] = useAuthState(auth);
-  const [isLoading, setIsLoading] = useState(true);
-  const [metadata, setMetadata] = useState<{
-    name: string;
-    file: string;
-  }>({
-    name: "",
-    file: "",
-  });
   const [building, setBuilding] = useState(false);
   const [built, setBuilt] = useState<string | null>(null);
 
-  useEffect(() => {
-    (async () => {
-      if (user) {
-        const response = await fetch(
-          game_id
-            ? `${api_route}/admin/game/${game_id}/meta`
-            : `${api_route}/game/meta`,
-          {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${await user.getIdToken()}`,
-            },
-          }
-        );
-        if (!response.ok) {
-          console.error(response);
-          return;
-        }
-        const metadata = await response.json();
-        setMetadata(metadata);
-        setIsLoading(false);
+  const queryClient = useQueryClient();
+
+  const { data: metadata, isLoading } = useQuery({
+    queryKey: [game_id ? `metadata-${game_id}` : "metadata", user?.uid],
+    queryFn: async () => {
+      if (!user) {
+        throw new Error("User not authenticated");
       }
-    })();
-  }, [user]);
+      const response = await fetch(
+        game_id
+          ? `${api_route}/admin/game/${game_id}/meta`
+          : `${api_route}/game/meta`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${await user.getIdToken()}`,
+          },
+        }
+      );
+      if (!response.ok) throw new Error("Failed to fetch metadata");
+      const metadata = await response.json();
+      return metadata;
+    },
+    enabled: !!user,
+    placeholderData: { name: "", file: "" },
+  });
 
   const candidates = files.filter(
     (file) => file.path.endsWith(".py") && !file.path.includes(" ")
   );
 
-  useEffect(() => {
-    if (
-      candidates.length === 1 &&
-      (!metadata.file || !files.find((file) => file.path === metadata.file))
-    ) {
-      setMetadata({ ...metadata, file: candidates[0].path });
+  if (!metadata.file || !files.find((file) => file.path === metadata.file)) {
+    if (candidates.length === 1) {
+      metadata.file = candidates[0].path;
     }
-  }, [candidates, metadata]);
+  }
+
+  const { mutate: setMetadata } = useMutation({
+    mutationFn: async (_: { name: string; file: string }) => {},
+    onMutate: async ({ name, file }) => {
+      await queryClient.cancelQueries({
+        queryKey: [game_id ? `metadata-${game_id}` : "metadata", user?.uid],
+      });
+
+      queryClient.setQueryData(
+        [game_id ? `metadata-${game_id}` : "metadata", user?.uid],
+        {
+          name,
+          file,
+        }
+      );
+    },
+  });
 
   return built ? (
     redirect("/play/own/" + built + (game_id ? `/${game_id}` : ""))

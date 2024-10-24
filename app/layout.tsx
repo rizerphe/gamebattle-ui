@@ -2,6 +2,7 @@ import "./globals.css";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import NavBar from "./navbar";
+import Providers from "./providers";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -31,7 +32,9 @@ export default function RootLayout({
             <img src="/bg.png" alt="" className="w-full h-full object-cover" />
           </div>
           <NavBar />
-          <Content>{children}</Content>
+          <Providers>
+            <Content>{children}</Content>
+          </Providers>
         </div>
       </body>
     </html>
