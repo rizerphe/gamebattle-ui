@@ -1,7 +1,7 @@
 "use client";
 import { auth } from "../firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Select from "react-select";
 import { redirect } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -23,7 +23,13 @@ export default function Builder({
 
   const queryClient = useQueryClient();
 
-  const { data: metadata, isLoading } = useQuery({
+  const {
+    data: metadata,
+    isLoading,
+  }: {
+    data?: { name: string; file: string };
+    isLoading: boolean;
+  } = useQuery({
     queryKey: [game_id ? `metadata-${game_id}` : "metadata", user?.uid],
     queryFn: async () => {
       if (!user) {
@@ -53,7 +59,10 @@ export default function Builder({
     (file) => file.path.endsWith(".py") && !file.path.includes(" ")
   );
 
-  if (!metadata.file || !files.find((file) => file.path === metadata.file)) {
+  if (
+    metadata &&
+    (!metadata.file || !files.find((file) => file.path === metadata.file))
+  ) {
     if (candidates.length === 1) {
       metadata.file = candidates[0].path;
     }
@@ -91,7 +100,9 @@ export default function Builder({
               metadata?.name ? "" : "outline outline-2 outline-red-600"
             }`}
             value={metadata?.name}
-            onChange={(e) => setMetadata({ ...metadata, name: e.target.value })}
+            onChange={(e) =>
+              metadata && setMetadata({ ...metadata, name: e.target.value })
+            }
           />
         </div>
         <div className="flex flex-row items-center gap-2 justify-between">
@@ -104,7 +115,7 @@ export default function Builder({
             }`}
             value={files.find((file) => file.path === metadata?.file) ?? null}
             onChange={(option) => {
-              if (!option?.path) return;
+              if (!option?.path || !metadata) return;
               setMetadata({ ...metadata, file: option.path });
             }}
             getOptionLabel={(option) => option.path}
