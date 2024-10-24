@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 
 const InteractiveDotBackground = () => {
-  const canvasRef = useRef(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const mouseMagentaRef = useRef({ x: 0, y: 0 });
   const mouseGreenRef = useRef({ x: 0, y: 0 });
   const targetRef = useRef({ x: 0, y: 0 });
@@ -19,6 +19,8 @@ const InteractiveDotBackground = () => {
 
     const ctx = canvas.getContext("2d");
 
+    if (!ctx) return;
+
     // Set initial canvas size
     const resizeCanvas = () => {
       const scale = window.devicePixelRatio || 1;
@@ -32,7 +34,7 @@ const InteractiveDotBackground = () => {
     resizeCanvas();
 
     // Set initial positions to match the mouse when the component mounts
-    const handleInitialMousePosition = (e) => {
+    const handleInitialMousePosition = (e: MouseEvent) => {
       const initialPosition = { x: e.clientX, y: e.clientY };
       mouseMagentaRef.current = initialPosition;
       mouseGreenRef.current = initialPosition;
@@ -48,7 +50,7 @@ const InteractiveDotBackground = () => {
     const dotSpacing = 20;
     const dotRadius = 2;
     const glowRadius = 200;
-    let animationId = null;
+    let animationId: number | null = null;
 
     // Animation loop
     const animate = () => {
@@ -129,7 +131,7 @@ const InteractiveDotBackground = () => {
     };
 
     // Mouse handlers
-    const handleMouseMove = (e) => {
+    const handleMouseMove = (e: MouseEvent) => {
       targetRef.current = {
         x: e.clientX,
         y: e.clientY,
