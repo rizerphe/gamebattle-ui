@@ -144,8 +144,8 @@ function ReportButton({
             bottom: "auto",
             marginRight: "-50%",
             transform: "translate(-50%, -50%)",
-            backgroundColor: "#1e1e1e",
-            border: "none",
+            backgroundColor: "#000000",
+            border: "solid 2px #333333",
             borderRadius: "0.5rem",
           },
           overlay: {
@@ -206,7 +206,7 @@ function ReportButton({
             <span className="text-zinc-300">Include game logs</span>
           </div>
           <textarea
-            className="rounded border-2 border-zinc-700 p-2 text-zinc-300 bg-zinc-900"
+            className="rounded border-2 border-zinc-900 p-2 text-zinc-300 bg-zinc-950"
             placeholder="More details (optional)"
             value={reason}
             onChange={(e) => setReason(e.target.value)}
@@ -214,7 +214,7 @@ function ReportButton({
           />
           <div className="flex flex-row justify-stretch rounded overflow-hidden">
             <button
-              className="bg-zinc-700 hover:bg-zinc-600 text-white font-bold py-2 px-4 flex-1 border-zinc-700 border-2"
+              className="bg-zinc-900 hover:bg-zinc-800 text-white font-bold py-2 px-4 flex-1 border-zinc-800 border-2"
               onClick={(e) => {
                 setConfirmation(false);
                 e.stopPropagation();
@@ -223,7 +223,7 @@ function ReportButton({
               Cancel
             </button>
             <button
-              className="bg-zinc-700 hover:bg-zinc-600 text-white font-bold py-2 px-4 flex-1 border-zinc-600 border-2"
+              className="bg-zinc-900 hover:bg-zinc-800 text-white font-bold py-2 px-4 flex-1 border-zinc-800 border-2"
               onClick={(e) => {
                 reportGame();
                 setConfirmation(false);
@@ -233,7 +233,7 @@ function ReportButton({
               Report
             </button>
             <button
-              className="bg-zinc-700 hover:bg-zinc-600 text-white font-bold py-2 px-4 flex-1 border-zinc-600 border-2"
+              className="bg-zinc-900 hover:bg-zinc-800 text-white font-bold py-2 px-4 flex-1 border-zinc-800 border-2"
               onClick={() => {
                 reportGame(false, true);
               }}
@@ -241,7 +241,7 @@ function ReportButton({
               {reporting ? "Reporting..." : "Report and start a new session"}
             </button>
             <button
-              className="bg-green-700 hover:bg-green-600 text-white font-bold py-2 px-4 flex-1 border-green-600 border-2"
+              className="bg-green-900 hover:bg-green-800 text-white font-bold py-2 px-4 flex-1 border-green-800 border-2"
               onClick={(e) => {
                 reportGame(true, false);
                 setConfirmation(false);
