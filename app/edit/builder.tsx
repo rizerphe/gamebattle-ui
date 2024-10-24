@@ -54,7 +54,18 @@ export default function Builder({
     })();
   }, [user]);
 
-  const validate_name = (name?: string) => name;
+  const candidates = files.filter(
+    (file) => file.path.endsWith(".py") && !file.path.includes(" ")
+  );
+
+  useEffect(() => {
+    if (
+      candidates.length === 1 &&
+      (!metadata.file || !files.find((file) => file.path === metadata.file))
+    ) {
+      setMetadata({ ...metadata, file: candidates[0].path });
+    }
+  }, [candidates, metadata]);
 
   return built ? (
     redirect("/play/own/" + built + (game_id ? `/${game_id}` : ""))
@@ -68,9 +79,7 @@ export default function Builder({
           <span>Name:</span>
           <input
             className={`px-2 py-1 bg-zinc-700 rounded flex-1 ${
-              validate_name(metadata?.name)
-                ? ""
-                : "outline outline-2 outline-red-600"
+              metadata?.name ? "" : "outline outline-2 outline-red-600"
             }`}
             value={metadata?.name}
             onChange={(e) => setMetadata({ ...metadata, name: e.target.value })}
@@ -115,9 +124,7 @@ export default function Builder({
             isLoading={isLoading}
             isClearable={false}
             isSearchable={true}
-            options={files.filter(
-              (file) => file.path.endsWith(".py") && !file.path.includes(" ")
-            )}
+            options={candidates}
             noOptionsMessage={() => "Create a Python file first."}
           />
         </div>

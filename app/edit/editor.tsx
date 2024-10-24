@@ -7,7 +7,6 @@ import { getMaterialFileIcon } from "file-extension-icon-js";
 import { DndProvider, useDrop } from "react-dnd";
 import { HTML5Backend, NativeTypes } from "react-dnd-html5-backend";
 import { VscCloudUpload } from "react-icons/vsc";
-import Link from "next/link";
 
 function CodeEditor({
   code,

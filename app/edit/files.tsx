@@ -8,6 +8,7 @@ import {
   VscNewFolder,
   VscNewFile,
   VscTrash,
+  VscCloudUpload,
 } from "react-icons/vsc";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend, NativeTypes } from "react-dnd-html5-backend";
@@ -353,7 +354,13 @@ function FileBrowserContent({
         rename_folder={rename_folder}
         delete_file={delete_file}
       />
-      <div className="flex-1" ref={(node) => drop(native_drop(node))}></div>
+      <div
+        className="flex flex-col justify-center items-center flex-1"
+        ref={(node) => drop(native_drop(node))}
+      >
+        <VscCloudUpload className="text-6xl text-zinc-700" />
+        <span className="text-zinc-700">Drop files here to upload</span>
+      </div>
     </>
   );
 }

@@ -39,6 +39,9 @@ export default function EditorLayout({
         }
         const files = await response.json();
         setFiles(files);
+        if (files.length === 1) {
+          setActiveFile(files[0].path);
+        }
       }
     })();
   }, [user, game_id]);
