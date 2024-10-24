@@ -21,6 +21,17 @@ const InteractiveDotBackground = () => {
 
     if (!ctx) return;
 
+    // Set dynamic dot size and spacing
+    const adjustDotSettings = () => {
+      const isMobile = window.innerWidth <= 768; // Define a mobile threshold (768px)
+      return {
+        dotSpacing: isMobile ? 10 : 20, // Less spaced out dots on mobile
+        dotRadius: isMobile ? 1 : 2, // Smaller dots on mobile
+      };
+    };
+
+    let { dotSpacing, dotRadius } = adjustDotSettings();
+
     // Set initial canvas size
     const resizeCanvas = () => {
       const scale = window.devicePixelRatio || 1;
@@ -47,8 +58,6 @@ const InteractiveDotBackground = () => {
     window.addEventListener("mousemove", handleInitialMousePosition);
 
     // Animation variables
-    const dotSpacing = 20;
-    const dotRadius = 2;
     const glowRadius = 200;
     let animationId: number | null = null;
 
@@ -112,11 +121,33 @@ const InteractiveDotBackground = () => {
           );
           const glowEffectGreen = Math.max(0.2, 1 - distanceGreen / glowRadius);
 
+          // Get a background glow brightness based on sine waves, from 0.15 to 0.25
+          let backgroundGlowMagenta =
+            0.2 +
+            Math.sin(
+              Date.now() / 1000 +
+                x / 100 +
+                Math.sin(y / 100 + Math.sin(Date.now() / 1000 + x / 100))
+            ) *
+              0.05;
+          let backgroundGlowGreen =
+            0.2 +
+            Math.sin(
+              Date.now() / 1000 +
+                x / 100 +
+                Math.sin(
+                  1 - y / 100 + Math.sin(1 + Date.now() / 1000 + x / 100)
+                )
+            ) *
+              0.05;
+
           // Combine base opacity, glow effect, and glow intensity
           const brightnessMagenta =
-            0.2 + (glowEffectMagenta - 0.2) * 0.5 * glowIntensityRef.current;
+            backgroundGlowMagenta +
+            (glowEffectMagenta - 0.2) * 0.5 * glowIntensityRef.current;
           const brightnessGreen =
-            0.2 + (glowEffectGreen - 0.2) * 0.5 * glowIntensityRef.current;
+            backgroundGlowGreen +
+            (glowEffectGreen - 0.2) * 0.5 * glowIntensityRef.current;
 
           ctx.beginPath();
           ctx.arc(x, y, dotRadius * scale, 0, Math.PI * 2);
