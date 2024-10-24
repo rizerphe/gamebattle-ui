@@ -54,7 +54,7 @@ export default function CodeSummary({ api_route }: { api_route: string }) {
         setSummary("Log in to start creating!");
       }
     })();
-  }, [user]);
+  }, [loading, user]);
 
   // We also want to prefetch the game files and metadata so that the app feels faster
   const queryClient = useQueryClient();
@@ -79,6 +79,7 @@ export default function CodeSummary({ api_route }: { api_route: string }) {
       },
     });
   }, [user]);
+
   useEffect(() => {
     if (!user) return;
     queryClient.prefetchQuery({
