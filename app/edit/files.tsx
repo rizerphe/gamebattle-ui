@@ -355,7 +355,7 @@ function FileBrowserContent({
         delete_file={delete_file}
       />
       <div
-        className="flex flex-col justify-center items-center flex-1"
+        className="flex flex-col justify-center items-center flex-1 max-md:hidden"
         ref={(node) => drop(native_drop(node))}
       >
         <VscCloudUpload className="text-6xl text-zinc-700" />
