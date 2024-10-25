@@ -24,7 +24,7 @@ export default function Builder({
   const queryClient = useQueryClient();
 
   const {
-    data: metadata,
+    data: raw_metadata,
     isLoading,
   }: {
     data?: { name: string; file: string };
@@ -54,15 +54,13 @@ export default function Builder({
     enabled: !!user,
     placeholderData: { name: "", file: "" },
   });
+  const metadata = raw_metadata ?? { name: "", file: "" };
 
   const candidates = files.filter(
     (file) => file.path.endsWith(".py") && !file.path.includes(" ")
   );
 
-  if (
-    metadata &&
-    (!metadata.file || !files.find((file) => file.path === metadata.file))
-  ) {
+  if (!metadata.file || !files.find((file) => file.path === metadata.file)) {
     if (candidates.length === 1) {
       metadata.file = candidates[0].path;
     }
@@ -97,25 +95,23 @@ export default function Builder({
           <span>Name:</span>
           <input
             className={`px-2 py-1 bg-zinc-700 rounded flex-1 ${
-              metadata?.name ? "" : "outline outline-2 outline-red-600"
+              metadata.name ? "" : "outline outline-2 outline-red-600"
             }`}
-            value={metadata?.name}
-            onChange={(e) =>
-              metadata && setMetadata({ ...metadata, name: e.target.value })
-            }
+            value={metadata.name}
+            onChange={(e) => setMetadata({ ...metadata, name: e.target.value })}
           />
         </div>
         <div className="flex flex-row items-center gap-2 justify-between">
           <span>Entrypoint:</span>
           <Select
             className={`flex-1 ${
-              files.find((file) => file.path === metadata?.file)
+              files.find((file) => file.path === metadata.file)
                 ? ""
                 : "outline outline-2 outline-red-600"
             }`}
-            value={files.find((file) => file.path === metadata?.file) ?? null}
+            value={files.find((file) => file.path === metadata.file) ?? null}
             onChange={(option) => {
-              if (!option?.path || !metadata) return;
+              if (!option?.path) return;
               setMetadata({ ...metadata, file: option.path });
             }}
             getOptionLabel={(option) => option.path}
@@ -159,15 +155,15 @@ export default function Builder({
         <div
           className={`flex flex-row items-center justify-center gap-2 p-2 rounded ${
             modified_files.length ||
-            !metadata?.name ||
-            !files.find((file) => file.path === metadata?.file)
+            !metadata.name ||
+            !files.find((file) => file.path === metadata.file)
               ? "bg-zinc-700 hover:bg-zinc-600"
               : "bg-blue-700 hover:bg-blue-600"
           } cursor-pointer`}
           onClick={async () => {
             if (modified_files.length) return;
-            if (!metadata?.name) return;
-            if (!files.find((file) => file.path === metadata?.file)) return;
+            if (!metadata.name) return;
+            if (!files.find((file) => file.path === metadata.file)) return;
             setBuilding(true);
             await fetch(`${api_route}/game/build`, {
               method: "POST",
