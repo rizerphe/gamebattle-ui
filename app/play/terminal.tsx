@@ -22,7 +22,14 @@ export default function TerminalComponent({
 
   useEffect(() => {
     // Initialize xterm.js
-    terminal.current = new Terminal();
+    terminal.current = new Terminal({
+      allowTransparency: true,
+      theme: {
+        background: "rgba(0, 0, 0, 0)",
+      },
+      fontFamily: "monospace",
+      fontSize: 16,
+    });
     fitAddon.current = new FitAddon();
     terminal.current.loadAddon(fitAddon.current);
 
@@ -70,5 +77,25 @@ export default function TerminalComponent({
     }
   }, []);
 
-  return <div ref={terminalRef} style={{ width: "100%", height: "100%" }} />;
+  return (
+    <div className="p-4 h-full">
+      <div ref={terminalRef} className="h-full" />
+      <style>
+        {`
+        /* I know this is a lazy solution, but I genuinely cba
+        to even just create a new file */
+
+        .xterm-viewport::-webkit-scrollbar {
+          background-color: #000;
+          width: 8px;
+        }
+
+        .xterm-viewport::-webkit-scrollbar-thumb {
+          background: #222;
+          border-radius: 4px;
+        }
+      `}
+      </style>
+    </div>
+  );
 }

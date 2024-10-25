@@ -60,7 +60,7 @@ function GameBox({
     <div
       className={`flex flex-col flex-1 ${
         gameRunning ? "bg-black" : "bg-zinc-900"
-      } bg-opacity-90 rounded-lg items-stretch overflow-hidden`}
+      } bg-opacity-90 rounded-lg items-stretch`}
       style={{ maxWidth: `calc(${100 / n_games}% - ${(n_games - 1) / 2}rem` }}
       onClick={() => ref.current?.focus?.()}
     >

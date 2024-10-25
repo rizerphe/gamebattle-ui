@@ -70,6 +70,16 @@ export default function Game({
         idToken && sendMessage(idToken);
         setConnected(true);
         setNewConnection(true);
+
+        if (newSize) {
+          sendMessage(
+            JSON.stringify({
+              type: "resize",
+              cols: newSize.cols,
+              rows: newSize.rows,
+            })
+          );
+        }
       },
       onClose: () => {
         setConnected(false);
@@ -113,7 +123,6 @@ export default function Game({
           rows: newSize.rows,
         })
       );
-      setNewSize(null);
     }
   }, [newSize]);
 
