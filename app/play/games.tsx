@@ -50,7 +50,7 @@ function GameBox({
   gameRestarter: number;
   setGameRestarter: (gameRestarter: number) => void;
 }) {
-  const ref = useRef<HTMLInputElement>(null);
+  const ref = useRef<HTMLDivElement | null>(null);
   const [output, setOutput] = useState<string>("");
   const [connected, setConnected] = useState<boolean>(false);
   const [gameRunning, setGameRunning] = useState<boolean>(true);
@@ -60,7 +60,7 @@ function GameBox({
     <div
       className={`flex flex-col flex-1 ${
         gameRunning ? "bg-black" : "bg-zinc-900"
-      } bg-opacity-90 rounded-lg items-stretch`}
+      } bg-opacity-90 rounded-lg items-stretch overflow-hidden`}
       style={{ maxWidth: `calc(${100 / n_games}% - ${(n_games - 1) / 2}rem` }}
       onClick={() => ref.current?.focus?.()}
     >
@@ -105,7 +105,6 @@ function GameBox({
               if (!running) setGameOver(true);
             }
           }}
-          output={output}
           setOutput={setOutput}
         />
       </GameContainer>
