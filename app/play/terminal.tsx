@@ -12,10 +12,10 @@ export default function TerminalComponent({
   resize,
 }: {
   senderRef: React.MutableRefObject<((data: string) => any) | null>;
-  clearRef: React.MutableRefObject<(() => void) | null>;
-  terminalRef: React.RefObject<HTMLDivElement | null>;
-  send: (input: string) => void;
-  resize: (cols: number, rows: number) => void;
+  clearRef?: React.MutableRefObject<(() => void) | null>;
+  terminalRef: React.RefObject<HTMLDivElement>;
+  send?: (input: string) => void;
+  resize?: (cols: number, rows: number) => void;
 }) {
   const terminal = useRef<Terminal | null>(null);
   const fitAddon = useRef<FitAddon | null>(null);
@@ -40,16 +40,18 @@ export default function TerminalComponent({
         terminal.current?.write(data);
       };
 
-      clearRef.current = () => {
-        terminal.current?.reset();
-      };
+      if (clearRef) {
+        clearRef.current = () => {
+          terminal.current?.reset();
+        };
+      }
 
       terminal.current.onData((data) => {
-        send(data);
+        send?.(data);
       });
 
       terminal.current.onResize((size) => {
-        resize(size.cols, size.rows);
+        resize?.(size.cols, size.rows);
       });
 
       // Handle resizing

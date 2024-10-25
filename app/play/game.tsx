@@ -12,11 +12,11 @@ export function GameText({
   clearRef,
   inputRef,
 }: {
-  send: (input: string) => void;
-  resize: (cols: number, rows: number) => void;
+  send?: (input: string) => void;
+  resize?: (cols: number, rows: number) => void;
   senderRef: React.MutableRefObject<((data: string) => any) | null>;
-  clearRef: React.MutableRefObject<(() => void) | null>;
-  inputRef: React.RefObject<HTMLDivElement | null>;
+  clearRef?: React.MutableRefObject<(() => void) | null>;
+  inputRef: React.RefObject<HTMLDivElement>;
 }) {
   return (
     <Terminal

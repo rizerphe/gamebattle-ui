@@ -1,7 +1,7 @@
 "use client";
 import { auth } from "../../../firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import GameContainer from "@/app/play/game_container";
 import { GameText } from "@/app/play/game";
@@ -44,6 +44,16 @@ export default function Report({
   }, [user?.uid]);
 
   const report = reports?.[report_id - 1];
+  const inputRef = useRef<HTMLDivElement>(null);
+  const senderRef = useRef<(data: string) => any | null>(null);
+  const clearRef = useRef<() => void | null>(null);
+
+  useEffect(() => {
+    if (clearRef.current && senderRef.current && report?.output) {
+      clearRef.current();
+      senderRef.current(report.output);
+    }
+  });
 
   return (
     <>
@@ -73,7 +83,11 @@ export default function Report({
           <GameContainer
             name={`${game_id} - report by ${report?.author} - game logs`}
           >
-            <GameText content={report.output} send={() => {}} />
+            <GameText
+              inputRef={inputRef}
+              senderRef={senderRef}
+              clearRef={clearRef}
+            />
           </GameContainer>
         </div>
       ) : null}
@@ -82,7 +96,11 @@ export default function Report({
           <GameContainer
             name={`${game_id} - report by ${report?.author} - reason`}
           >
-            <GameText content={report.reason} send={() => {}} />
+            <GameText
+              inputRef={inputRef}
+              senderRef={senderRef}
+              clearRef={clearRef}
+            />
           </GameContainer>
         </div>
       ) : null}
