@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import FileBrowser from "./files";
 import FileEditor from "./editor";
 import Builder from "./builder";
+import { toast } from "sonner";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -69,6 +70,7 @@ export default function EditorLayout({
     }) => {
       if (!path && !content) return;
       if (!user) {
+        toast("User not logged in");
         throw "User not logged in";
       }
       const response = await fetch(`${api_route}/game`, {
@@ -80,6 +82,8 @@ export default function EditorLayout({
         body: JSON.stringify({ filename: path, content, game_id: game_id }),
       });
       if (!response.ok) {
+        const data = await response.json();
+        toast("Failed to save file: " + data.detail);
         throw response;
       }
     },
