@@ -82,8 +82,12 @@ export default function EditorLayout({
         body: JSON.stringify({ filename: path, content, game_id: game_id }),
       });
       if (!response.ok) {
-        const data = await response.json();
-        toast("Failed to save file: " + data.detail);
+        if (response.status === 400) {
+          const data = await response.json();
+          toast("Failed to save file: " + data.detail);
+        } else if (response.status === 413) {
+          toast("File too large to save");
+        }
         throw response;
       }
     },
