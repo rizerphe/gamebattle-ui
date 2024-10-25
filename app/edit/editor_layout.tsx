@@ -53,7 +53,7 @@ export default function EditorLayout({
 
   useEffect(() => {
     if (files) {
-      if (files.length === 1) {
+      if (files.length === 1 && files[0].path.endsWith(".py")) {
         setActiveFile(files[0].path);
       }
     }
@@ -67,6 +67,7 @@ export default function EditorLayout({
       path: string;
       content: string;
     }) => {
+      if (!path && !content) return;
       if (!user) {
         throw "User not logged in";
       }
