@@ -73,6 +73,10 @@ export default function EditorLayout({
         toast("User not logged in");
         throw "User not logged in";
       }
+      if (content.length > 128 * 1024) {
+        toast("File size too large");
+        throw "File size too large";
+      }
       const response = await fetch(`${api_route}/game`, {
         method: "POST",
         headers: {
@@ -85,8 +89,6 @@ export default function EditorLayout({
         if (response.status === 400) {
           const data = await response.json();
           toast("Failed to save file: " + data.detail);
-        } else if (response.status === 413) {
-          toast("File too large to save");
         }
         throw response;
       }
