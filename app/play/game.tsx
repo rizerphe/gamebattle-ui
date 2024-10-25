@@ -1,56 +1,31 @@
 "use client";
 import { auth } from "../firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import useWebSocket from "react-use-websocket";
-import Ansi from "ansi-to-react";
+import Terminal from "./terminal";
 
 export function GameText({
-  content,
   send,
+  resize,
+  senderRef,
+  clearRef,
   inputRef,
 }: {
-  content: string;
   send: (input: string) => void;
-  inputRef?: React.RefObject<HTMLInputElement>;
+  resize: (cols: number, rows: number) => void;
+  senderRef: React.MutableRefObject<((data: string) => any) | null>;
+  clearRef: React.MutableRefObject<(() => void) | null>;
+  inputRef: React.RefObject<HTMLDivElement | null>;
 }) {
-  const [input, setInput] = useState<string>("");
-
-  const ansi = Ansi({ children: content });
-  ansi.props.children.push(
-    <input
-      className="bg-transparent text-white p-0 outline-none m-0"
-      type="text"
-      value={input}
-      onChange={(e) => setInput(e.target.value)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") {
-          send(input + "\n");
-          setInput("");
-        }
-      }}
-      ref={inputRef}
-      autoFocus={inputRef?.current === document.activeElement}
-    />
-  );
-
-  setTimeout(() => {
-    inputRef?.current?.scrollIntoView?.({
-      block: "end",
-      inline: "nearest",
-    });
-  }, 0);
-
   return (
-    <div
-      className="p-4 flex flex-col whitespace-pre-wrap overflow-y-auto scrollbar-none max-w-full"
-      style={{
-        maxHeight: "calc(100vh - 18rem)",
-      }}
-      onClick={() => inputRef?.current?.focus?.()}
-    >
-      {ansi}
-    </div>
+    <Terminal
+      senderRef={senderRef}
+      clearRef={clearRef}
+      send={send}
+      resize={resize}
+      terminalRef={inputRef}
+    />
   );
 }
 
@@ -62,23 +37,27 @@ export default function Game({
   inputRef,
   gameRunning,
   setGameRunning,
-  output = "",
   setOutput = () => {},
 }: {
   api_route: string;
   session_id: string;
   game: number;
   setConnected: (connected: boolean) => void;
-  inputRef?: React.RefObject<HTMLInputElement>;
+  inputRef: React.RefObject<HTMLDivElement>;
   gameRunning: boolean;
   setGameRunning: (running: boolean) => void;
-  output?: string;
   setOutput?: (setter: (output: string) => string) => void;
 }) {
+  const senderRef = useRef<(data: string) => any | null>(null);
+  const clearerRef = useRef<() => void | null>(null);
+
   const [user] = useAuthState(auth);
   const [newConnection, setNewConnection] = useState<boolean>(true);
   const [idToken, setIdToken] = useState<string | null>(null);
   const [nextMessage, setNextMessage] = useState<string | null>(null);
+  const [newSize, setNewSize] = useState<{ cols: number; rows: number } | null>(
+    null
+  );
   const { readyState, sendMessage } = useWebSocket(
     `${api_route}/sessions/${session_id}/${game}/ws`,
     {
@@ -87,9 +66,20 @@ export default function Game({
       reconnectInterval: 1000,
       onOpen: () => {
         setOutput(() => "");
+        clearerRef.current?.();
         idToken && sendMessage(idToken);
         setConnected(true);
         setNewConnection(true);
+
+        if (newSize) {
+          sendMessage(
+            JSON.stringify({
+              type: "resize",
+              cols: newSize.cols,
+              rows: newSize.rows,
+            })
+          );
+        }
       },
       onClose: () => {
         setConnected(false);
@@ -102,6 +92,7 @@ export default function Game({
         if (message.type === "stdout") {
           setGameRunning(true);
           setOutput((output: string) => output + message.data);
+          senderRef?.current && senderRef.current(message.data);
         }
         if (message.type === "bye") {
           setGameRunning(false);
@@ -113,10 +104,27 @@ export default function Game({
 
   useEffect(() => {
     if (readyState === 1 && nextMessage) {
-      sendMessage(nextMessage);
+      sendMessage(
+        JSON.stringify({
+          type: "stdin",
+          data: nextMessage,
+        })
+      );
       setNextMessage(null);
     }
   }, [readyState, nextMessage]);
+
+  useEffect(() => {
+    if (newSize) {
+      sendMessage(
+        JSON.stringify({
+          type: "resize",
+          cols: newSize.cols,
+          rows: newSize.rows,
+        })
+      );
+    }
+  }, [newSize]);
 
   useEffect(() => {
     if (!user) return;
@@ -125,8 +133,10 @@ export default function Game({
 
   return (
     <GameText
-      content={output}
       send={(input: string) => setNextMessage(input)}
+      resize={(cols: number, rows: number) => setNewSize({ cols, rows })}
+      senderRef={senderRef}
+      clearRef={clearerRef}
       inputRef={inputRef}
     />
   );

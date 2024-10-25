@@ -50,7 +50,7 @@ function GameBox({
   gameRestarter: number;
   setGameRestarter: (gameRestarter: number) => void;
 }) {
-  const ref = useRef<HTMLInputElement>(null);
+  const ref = useRef<HTMLDivElement | null>(null);
   const [output, setOutput] = useState<string>("");
   const [connected, setConnected] = useState<boolean>(false);
   const [gameRunning, setGameRunning] = useState<boolean>(true);
@@ -105,7 +105,6 @@ function GameBox({
               if (!running) setGameOver(true);
             }
           }}
-          output={output}
           setOutput={setOutput}
         />
       </GameContainer>
