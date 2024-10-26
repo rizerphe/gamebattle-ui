@@ -38,11 +38,11 @@ export default function Play({
             session_id={session_id}
             n_placeholder_games={1}
             tooling={<DevTooling />}
-          />
-          <PlaceholderGame
-            name="Tips"
-            content={
-              transform(`**Welcome to the Game Development Tips! 👋**
+          >
+            <PlaceholderGame
+              name="Tips"
+              content={
+                transform(`**Welcome to the Game Development Tips! 👋**
 
 **Why Split Screen?**
 This isn't just for show - during the competition, players will be running two games side by side, each taking up exactly this much space. This view helps you develop with that in mind!
@@ -69,9 +69,10 @@ If you're using curses or similar tools:
 - Test your display at different sizes
 
 Remember: A game that runs smoothly is way better than one that's flashy but temperamental. Have fun creating! 🎮`) +
-              `\n`
-            }
-          />
+                `\n`
+              }
+            />
+          </Games>
         </Suspense>
       </div>
     </div>

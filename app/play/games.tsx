@@ -34,6 +34,7 @@ function GameBox({
   n_games,
   gameRestarter,
   setGameRestarter,
+  toggleFullscreen,
 }: {
   name: string;
   api_route: string;
@@ -49,6 +50,7 @@ function GameBox({
   n_games: number;
   gameRestarter: number;
   setGameRestarter: (gameRestarter: number) => void;
+  toggleFullscreen: () => void;
 }) {
   const ref = useRef<HTMLDivElement | null>(null);
   const [output, setOutput] = useState<string>("");
@@ -83,6 +85,7 @@ function GameBox({
               n_games={n_games}
               gameRestarter={gameRestarter}
               setGameRestarter={setGameRestarter}
+              toggleFullscreen={toggleFullscreen}
             />
             {connected || !gameRunning ? null : (
               <span className="font-bold text-red-600">connecting...</span>
@@ -118,18 +121,22 @@ export default function Games({
   session_id,
   n_placeholder_games = 2,
   tooling,
+  children,
 }: {
   api_route: string;
   api_ws_route: string;
   session_id: string;
   n_placeholder_games?: number;
   tooling?: React.ReactNode;
+  children?: React.ReactNode;
 }) {
   const [user] = useAuthState(auth);
   const [session, setSession] = useState<Session | null>(null);
   const [gamesOver, setGamesOver] = useState<boolean[]>([]);
   const [score, setScore] = useState<number | null>(null);
   const [gameRestarter, setGameRestarter] = useState<number>(0);
+
+  const [fullscreenGameId, setFullscreenGameId] = useState<number | null>(null);
 
   useEffect(() => {
     const getScore = async () => {
@@ -168,45 +175,58 @@ export default function Games({
     fetch_session();
   }, [user?.uid, api_route, session_id, gameRestarter]);
 
-  return session ? (
+  return (
     <>
-      {session.games.map(
-        ({ name }: { name: string; over: boolean }, game: number) => (
-          <GameBox
-            key={game}
-            name={name}
-            api_route={api_route}
-            api_ws_route={api_ws_route}
-            session_id={session_id}
-            game={game}
-            tooling={tooling}
-            allGamesOver={gamesOver.every((gameOver) => gameOver)}
-            gameOver={gamesOver[game]}
-            setGameOver={(gameOver: boolean) => {
-              const newGamesOver = [...gamesOver];
-              newGamesOver[game] = gameOver;
-              setGamesOver(newGamesOver);
-            }}
-            score={score}
-            setScore={setScore}
-            n_games={session.games.length}
-            gameRestarter={gameRestarter}
-            setGameRestarter={setGameRestarter}
-          />
-        )
+      {session ? (
+        <>
+          {session.games.map(
+            ({ name }: { name: string; over: boolean }, game: number) =>
+              (!fullscreenGameId || fullscreenGameId === game) && (
+                <GameBox
+                  key={game}
+                  name={name}
+                  api_route={api_route}
+                  api_ws_route={api_ws_route}
+                  session_id={session_id}
+                  game={game}
+                  tooling={tooling}
+                  allGamesOver={gamesOver.every((gameOver) => gameOver)}
+                  gameOver={gamesOver[game]}
+                  setGameOver={(gameOver: boolean) => {
+                    const newGamesOver = [...gamesOver];
+                    newGamesOver[game] = gameOver;
+                    setGamesOver(newGamesOver);
+                  }}
+                  score={score}
+                  setScore={setScore}
+                  n_games={session.games.length}
+                  gameRestarter={gameRestarter}
+                  setGameRestarter={setGameRestarter}
+                  toggleFullscreen={() => {
+                    if (fullscreenGameId === game) {
+                      setFullscreenGameId(null);
+                    } else {
+                      setFullscreenGameId(game);
+                    }
+                  }}
+                />
+              )
+          )}
+        </>
+      ) : (
+        <>
+          {Array.from(Array(n_placeholder_games).keys()).map((i) => (
+            <div
+              key={i}
+              className="flex flex-col flex-1 bg-black bg-opacity-90 rounded-lg items-stretch"
+              style={{ maxWidth: `${100 / n_placeholder_games}%` }}
+            >
+              <GameContainer tooling={tooling} name="Loading..." />
+            </div>
+          ))}
+        </>
       )}
-    </>
-  ) : (
-    <>
-      {Array.from(Array(n_placeholder_games).keys()).map((i) => (
-        <div
-          key={i}
-          className="flex flex-col flex-1 bg-black bg-opacity-90 rounded-lg items-stretch"
-          style={{ maxWidth: `${100 / n_placeholder_games}%` }}
-        >
-          <GameContainer tooling={tooling} name="Loading..." />
-        </div>
-      ))}
+      {fullscreenGameId == null && children}
     </>
   );
 }

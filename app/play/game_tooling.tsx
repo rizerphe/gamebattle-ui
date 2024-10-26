@@ -3,9 +3,34 @@ import Modal from "react-modal";
 import { auth } from "../firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { useState } from "react";
-import { VscRefresh, VscWarning, VscRunAll } from "react-icons/vsc";
+import {
+  VscRefresh,
+  VscWarning,
+  VscRunAll,
+  VscScreenFull,
+} from "react-icons/vsc";
 import { AiFillLike } from "react-icons/ai";
 import { redirect } from "next/navigation";
+
+function FullscreenButton({
+  toggleFullscreen,
+}: {
+  toggleFullscreen: () => void;
+}) {
+  return (
+    <span
+      className="relative group rounded-full p-3 aspect-square bg-transparent hover:bg-black"
+      onClick={toggleFullscreen}
+    >
+      <VscScreenFull className="text-xl text-zinc-200 group-hover:text-zinc-400" />
+      <div className="absolute bottom-full left-1/2 p-2 -translate-x-1/2 min-w-fit whitespace-nowrap">
+        <span className="rounded bg-zinc-200 text-black px-2 py-1 text-xs font-bold opacity-0 group-hover:opacity-100 transition duration-300">
+          Fullscreen
+        </span>
+      </div>
+    </span>
+  );
+}
 
 function RestartButton({
   api_route,
@@ -375,6 +400,7 @@ export default function GameTooling({
   n_games,
   gameRestarter,
   setGameRestarter,
+  toggleFullscreen,
 }: {
   api_route: string;
   session_id: string;
@@ -390,6 +416,7 @@ export default function GameTooling({
   n_games: number;
   gameRestarter: number;
   setGameRestarter: (gameRestarter: number) => void;
+  toggleFullscreen: () => void;
 }) {
   const [user] = useAuthState(auth);
   const [redirecting, setRedirecting] = useState<boolean>(false);
@@ -417,6 +444,7 @@ export default function GameTooling({
 
   return (
     <>
+      <FullscreenButton toggleFullscreen={toggleFullscreen} />
       <RestartButton
         api_route={api_route}
         session_id={session_id}
