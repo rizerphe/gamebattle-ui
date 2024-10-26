@@ -57,6 +57,11 @@ This isn't just for show - during the competition, players will be running two g
 - Try the full-screen button to test different sizes
 - Keep it simple and robust!
 
+**File limitations**
+- 128KB per file
+- Up to 64 files per game
+- Filenames can only contain English letters, numbers, ".", "-", "_", and " ".
+
 **Using Display Libraries?**
 If you're using curses or similar tools:
 - Screen size starts at 80x24, updates on connect
