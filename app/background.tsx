@@ -47,8 +47,8 @@ const InteractiveDotBackground = () => {
     // Set initial positions to match the mouse when the component mounts
     const handleInitialMousePosition = (e: MouseEvent) => {
       const initialPosition = { x: e.clientX, y: e.clientY };
-      mouseMagentaRef.current = initialPosition;
-      mouseGreenRef.current = initialPosition;
+      mouseMagentaRef.current = { ...initialPosition };
+      mouseGreenRef.current = { ...initialPosition };
 
       isMouseInWindowRef.current = true;
 
@@ -83,14 +83,14 @@ const InteractiveDotBackground = () => {
 
       // Smooth mouse following for both colors
       mouseMagentaRef.current.x +=
-        (targetRef.current.x - mouseMagentaRef.current.x) * 0.05;
+        (targetRef.current.x - mouseMagentaRef.current.x) * 0.1;
       mouseMagentaRef.current.y +=
-        (targetRef.current.y - mouseMagentaRef.current.y) * 0.05;
+        (targetRef.current.y - mouseMagentaRef.current.y) * 0.1;
 
       mouseGreenRef.current.x +=
-        (targetRef.current.x - mouseGreenRef.current.x) * 0.1;
+        (targetRef.current.x - mouseGreenRef.current.x) * 0.075;
       mouseGreenRef.current.y +=
-        (targetRef.current.y - mouseGreenRef.current.y) * 0.1;
+        (targetRef.current.y - mouseGreenRef.current.y) * 0.075;
 
       // Draw dot grid
       const scale = window.devicePixelRatio || 1;
