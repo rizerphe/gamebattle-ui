@@ -4,7 +4,7 @@ import { useAuthState } from "react-firebase-hooks/auth";
 import { useEffect, useState, useRef } from "react";
 import { z } from "zod";
 import GameContainer from "./game_container";
-import Game from "./game";
+import Game, { GameText } from "./game";
 import GameTooling from "./game_tooling";
 
 const Session = z.object({
@@ -208,5 +208,39 @@ export default function Games({
         </div>
       ))}
     </>
+  );
+}
+
+export function PlaceholderGame({
+  name,
+  tooling,
+  content = "",
+}: {
+  name: string;
+  tooling?: React.ReactNode;
+  content?: string;
+}) {
+  const inputRef = useRef<HTMLDivElement>(null);
+  const clearRef = useRef<(() => void) | null>(null);
+  const senderRef = useRef<((data: string) => any) | null>(null);
+
+  useEffect(() => {
+    if (clearRef.current && senderRef.current) {
+      clearRef.current();
+      // Replace the \n with \r\n to simulate a terminal
+      senderRef.current(content.replace(/\n/g, "\r\n"));
+    }
+  }, [content]);
+
+  return (
+    <div className="flex flex-col flex-1 bg-black bg-opacity-90 rounded-lg items-stretch">
+      <GameContainer name={name} tooling={<>{tooling ?? null}</>}>
+        <GameText
+          inputRef={inputRef}
+          clearRef={clearRef}
+          senderRef={senderRef}
+        />
+      </GameContainer>
+    </div>
   );
 }

@@ -29,6 +29,7 @@
     "file-extension-icon-js": "^1.1.6",
     "firebase": "^10.4.0",
     "lucide-react": "^0.453.0",
+    "markdown-to-ansi": "^1.0.0",
     "moment": "^2.29.4",
     "next": "13.5.2",
     "next-themes": "^0.3.0",
