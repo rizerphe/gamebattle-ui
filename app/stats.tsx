@@ -111,7 +111,7 @@ export default function Stats({ api_route }: { api_route: string }) {
           {stats?.stats?.place ? (
             <div className="flex flex-row items-center justify-start gap-2">
               <span className="font-bold">You are at</span>
-              <span className="font-bold text-xl text-zinc-800">
+              <span className="font-bold text-xl text-zinc-300">
                 {ordinal(Math.round(stats?.stats?.place ?? 0))} place
               </span>
             </div>
