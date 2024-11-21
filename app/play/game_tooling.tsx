@@ -88,14 +88,12 @@ function ReportButton({
   api_route,
   session_id,
   game_id,
-  output = "",
   gameRestarter,
   setGameRestarter,
 }: {
   api_route: string;
   session_id: string;
   game_id: number;
-  output?: string;
   gameRestarter: number;
   setGameRestarter: (gameRestarter: number) => void;
 }) {
@@ -128,7 +126,7 @@ function ReportButton({
         short_reason: shortReason,
         reason: reason,
         restart_game: restart_game,
-        output: includeOutput ? output : "",
+        capture_output: includeOutput,
       }),
     });
     if (restart_game) {
@@ -394,7 +392,6 @@ export default function GameTooling({
   allGamesOver,
   score,
   setScore,
-  output,
   restarting,
   setRestarting,
   n_games,
@@ -410,7 +407,6 @@ export default function GameTooling({
   allGamesOver: boolean;
   score: number | null;
   setScore: (score: number) => void;
-  output: string;
   restarting: boolean;
   setRestarting: (restarting: boolean) => void;
   n_games: number;
@@ -458,7 +454,6 @@ export default function GameTooling({
           api_route={api_route}
           session_id={session_id}
           game_id={game_id}
-          output={output}
           gameRestarter={gameRestarter}
           setGameRestarter={setGameRestarter}
         />

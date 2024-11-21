@@ -51,7 +51,10 @@ export default function Report({
   useEffect(() => {
     if (clearRef.current && senderRef.current && report?.output) {
       clearRef.current();
-      senderRef.current(report.output);
+      // senderRef.current(report.output);
+      setTimeout(() => {
+        senderRef.current?.(report.output);
+      }, 0); // Hack to make sure the terminal is ready
     }
   });
 

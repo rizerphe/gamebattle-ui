@@ -37,7 +37,6 @@ export default function Game({
   inputRef,
   gameRunning,
   setGameRunning,
-  setOutput = () => {},
 }: {
   api_route: string;
   session_id: string;
@@ -46,7 +45,6 @@ export default function Game({
   inputRef: React.RefObject<HTMLDivElement>;
   gameRunning: boolean;
   setGameRunning: (running: boolean) => void;
-  setOutput?: (setter: (output: string) => string) => void;
 }) {
   const senderRef = useRef<(data: string) => any | null>(null);
   const clearerRef = useRef<() => void | null>(null);
@@ -65,7 +63,6 @@ export default function Game({
       reconnectAttempts: 10,
       reconnectInterval: 1000,
       onOpen: () => {
-        setOutput(() => "");
         clearerRef.current?.();
         idToken && sendMessage(idToken);
         setConnected(true);
@@ -91,7 +88,6 @@ export default function Game({
         const message = JSON.parse(e.data);
         if (message.type === "stdout") {
           setGameRunning(true);
-          setOutput((output: string) => output + message.data);
           senderRef?.current && senderRef.current(message.data);
         }
         if (message.type === "bye") {

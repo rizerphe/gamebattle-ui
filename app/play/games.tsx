@@ -53,7 +53,6 @@ function GameBox({
   toggleFullscreen: () => void;
 }) {
   const ref = useRef<HTMLDivElement | null>(null);
-  const [output, setOutput] = useState<string>("");
   const [connected, setConnected] = useState<boolean>(false);
   const [gameRunning, setGameRunning] = useState<boolean>(true);
   const [restarting, setRestarting] = useState<boolean>(false);
@@ -79,7 +78,6 @@ function GameBox({
               allGamesOver={allGamesOver}
               score={score}
               setScore={setScore}
-              output={output}
               restarting={restarting}
               setRestarting={setRestarting}
               n_games={n_games}
@@ -108,7 +106,6 @@ function GameBox({
               if (!running) setGameOver(true);
             }
           }}
-          setOutput={setOutput}
         />
       </GameContainer>
     </div>

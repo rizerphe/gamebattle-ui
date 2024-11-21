@@ -37,7 +37,9 @@ export default function TerminalComponent({
       terminal.current.open(terminalRef.current);
 
       senderRef.current = (data) => {
-        terminal.current?.write(data);
+        // Decode base64 string to Uint8Array and write to terminal
+        const bytes = Uint8Array.from(atob(data), (c) => c.charCodeAt(0));
+        terminal.current?.write(bytes);
       };
 
       if (clearRef) {
@@ -47,7 +49,12 @@ export default function TerminalComponent({
       }
 
       terminal.current.onData((data) => {
-        send?.(data);
+        if (send) {
+          // Convert string to Uint8Array and encode as base64
+          const bytes = new TextEncoder().encode(data);
+          const base64 = btoa(String.fromCharCode(...bytes));
+          send(base64);
+        }
       });
 
       terminal.current.onResize((size) => {
