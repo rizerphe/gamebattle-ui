@@ -52,7 +52,9 @@ export default function TerminalComponent({
         if (send) {
           // Convert string to Uint8Array and encode as base64
           const bytes = new TextEncoder().encode(data);
-          const base64 = btoa(String.fromCharCode(...bytes));
+          const base64 = btoa(
+            Array.from(bytes, (c) => String.fromCharCode(c)).join("")
+          );
           send(base64);
         }
       });
