@@ -47,16 +47,30 @@ export default function Report({
   const inputRef = useRef<HTMLDivElement>(null);
   const senderRef = useRef<(data: string) => any | null>(null);
   const clearRef = useRef<() => void | null>(null);
+  const reasonInputRef = useRef<HTMLDivElement>(null);
+  const reasonSenderRef = useRef<(data: string) => any | null>(null);
+  const reasonClearRef = useRef<() => void | null>(null);
 
   useEffect(() => {
-    if (clearRef.current && senderRef.current && report?.output) {
-      clearRef.current();
-      // senderRef.current(report.output);
-      setTimeout(() => {
-        senderRef.current?.(report.output);
-      }, 0); // Hack to make sure the terminal is ready
-    }
-  });
+    setTimeout(() => {
+      if (clearRef.current && senderRef.current && report?.output) {
+        clearRef.current();
+        senderRef.current(report.output);
+      }
+      if (reasonClearRef.current && reasonSenderRef.current && report?.reason) {
+        // Convert string to Uint8Array and encode as base64
+        const bytes = new TextEncoder().encode(
+          report.reason.replace(/\n/g, "\r\n")
+        );
+        const base64 = btoa(
+          Array.from(bytes, (c) => String.fromCharCode(c)).join("")
+        );
+
+        reasonClearRef.current();
+        reasonSenderRef.current(base64);
+      }
+    }, 0);
+  }, [report]);
 
   return (
     <>
@@ -100,9 +114,9 @@ export default function Report({
             name={`${game_id} - report by ${report?.author} - reason`}
           >
             <GameText
-              inputRef={inputRef}
-              senderRef={senderRef}
-              clearRef={clearRef}
+              inputRef={reasonInputRef}
+              senderRef={reasonSenderRef}
+              clearRef={reasonClearRef}
             />
           </GameContainer>
         </div>
