@@ -8,11 +8,11 @@ import { FaFilter, FaDownload } from "react-icons/fa";
 
 const RatingsSchema = z.array(
   z.tuple([
+    z.string(),
     z.object({
       name: z.string(),
-      author: z.string(),
+      team_id: z.string(),
       file: z.string(),
-      email: z.string(),
     }),
     z.object({
       elo: z.number().or(z.null()),
@@ -92,21 +92,23 @@ export default function Ratings({ api_route }: { api_route: string }) {
       </span>
       {ratings
         .filter(
-          ([metadata, position]) =>
+          ([author, metadata, position]) =>
             (!filterByReports || position.reports > 5) &&
             (!filterByAccumulation || position.accumulation < 5)
         )
-        .map(([metadata, position], index) => (
+        .map(([author, metadata, position], index) => (
           <>
             <span
               key={index * 5}
               className="text-2xl font-bold p-2 flex flex-col border-t border-gray-500"
             >
-              {metadata.author}
+              {author}
               <span className="text-gray-400 text-sm flex flex-row">
-                {metadata.email}
+                {author}
                 &nbsp;&#x2022;&nbsp;
-                {metadata.name}
+                {
+                  author // The name was here
+                }
               </span>
             </span>
             <span
@@ -134,7 +136,7 @@ export default function Ratings({ api_route }: { api_route: string }) {
                     : "text-yellow-200"
                   : "text-gray-200"
               }`}
-              href={`/report/${metadata.email.split("@")[0].split(".")[0]}/1`}
+              href={`/report/${metadata.team_id}/1`}
             >
               {position.reports} Reports
             </Link>
