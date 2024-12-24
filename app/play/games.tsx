@@ -34,6 +34,7 @@ function GameBox({
   n_games,
   gameRestarter,
   setGameRestarter,
+  isFullscreen,
   toggleFullscreen,
 }: {
   name: string;
@@ -50,6 +51,7 @@ function GameBox({
   n_games: number;
   gameRestarter: number;
   setGameRestarter: (gameRestarter: number) => void;
+  isFullscreen: boolean;
   toggleFullscreen: () => void;
 }) {
   const ref = useRef<HTMLDivElement | null>(null);
@@ -62,7 +64,11 @@ function GameBox({
       className={`flex flex-col flex-1 ${
         gameRunning ? "bg-black" : "bg-zinc-900"
       } bg-opacity-90 rounded-lg items-stretch`}
-      style={{ maxWidth: `calc(${100 / n_games}% - ${(n_games - 1) / 2}rem` }}
+      style={{
+        maxWidth: `calc(${100 / (isFullscreen ? 1 : n_games)}% - ${
+          ((isFullscreen ? 1 : n_games) - 1) / 2
+        }rem`,
+      }}
       onClick={() => ref.current?.focus?.()}
     >
       <GameContainer
@@ -178,7 +184,7 @@ export default function Games({
         <>
           {session.games.map(
             ({ name }: { name: string; over: boolean }, game: number) =>
-              (!fullscreenGameId || fullscreenGameId === game) && (
+              (fullscreenGameId == null || fullscreenGameId === game) && (
                 <GameBox
                   key={game}
                   name={name}
@@ -199,6 +205,7 @@ export default function Games({
                   n_games={session.games.length}
                   gameRestarter={gameRestarter}
                   setGameRestarter={setGameRestarter}
+                  isFullscreen={fullscreenGameId === game}
                   toggleFullscreen={() => {
                     if (fullscreenGameId === game) {
                       setFullscreenGameId(null);
