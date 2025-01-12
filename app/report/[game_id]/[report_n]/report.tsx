@@ -10,7 +10,7 @@ import Link from "next/link";
 const reportSchema = z.object({
   short_reason: z.enum(["unclear", "buggy", "other"]),
   reason: z.string(),
-  output: z.string().default(""),
+  output: z.string().nullable().default(""),
   author: z.string(),
 });
 
