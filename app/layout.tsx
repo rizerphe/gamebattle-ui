@@ -4,8 +4,8 @@ import { Inter } from "next/font/google";
 import NavBar from "./navbar";
 import Providers from "./providers";
 import InteractiveDotBackground from "./background";
-import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { cn } from "@/lib/utils";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 
 function Content({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-col items-center gap-4 p-4 min-h-fit flex-1">
+    <div className="flex flex-col items-center flex-1 p-4 gap-4 min-h-fit">
       {children}
     </div>
   );
@@ -29,23 +29,17 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          disableTransitionOnChange
-        >
-          <div className="flex flex-col items-stretch min-h-screen h-fit relative">
-            <div className="fixed object-cover inset-0 z-[-1]">
-              <InteractiveDotBackground />
-            </div>
-            <NavBar />
-            <Providers>
-              <Content>{children}</Content>
-              <Toaster />
-            </Providers>
+      <body className={cn(inter.className, "dark")}>
+        <div className="relative flex flex-col items-stretch min-h-screen h-fit">
+          <div className="fixed object-cover inset-0 z-[-1]">
+            <InteractiveDotBackground />
           </div>
-        </ThemeProvider>
+          <NavBar />
+          <Providers>
+            <Content>{children}</Content>
+            <Toaster />
+          </Providers>
+        </div>
       </body>
     </html>
   );
