@@ -13,13 +13,13 @@ export function ProgressBar({
 }) {
   return (
     <div className="relative w-full h-full min-h-[2rem]">
-      <div className="absolute inset-0 flex flex-row items-center justify-center rounded overflow-hidden bg-cyan-950">
+      <div className="absolute inset-0 flex flex-row items-center justify-center overflow-hidden rounded bg-cyan-950">
         <span
-          className="absolute left-0 top-0 bottom-0 rounded bg-zinc-950"
+          className="absolute top-0 bottom-0 left-0 rounded bg-zinc-950"
           style={{ width: `${progress * 100}%` }}
         />
       </div>
-      <div className="absolute inset-0 flex flex-row items-center justify-center text-zinc-100 font-black">
+      <div className="absolute inset-0 flex flex-row items-center justify-center font-black text-zinc-100">
         {children}
       </div>
     </div>
@@ -35,6 +35,7 @@ const statsSchema = z.object({
   places: z.number().optional(),
   accumulation: z.number().optional(),
   required_accumulation: z.number().optional(),
+  game_name: z.string().optional(),
 });
 
 export default function Stats({ api_route }: { api_route: string }) {
@@ -81,9 +82,9 @@ export default function Stats({ api_route }: { api_route: string }) {
     <span className="font-bold text-red-800">Loading...</span>
   ) : stats.stats?.permitted ? (
     <>
-      <div className="flex flex-col justify-evenly items-stretch gap-4">
+      <div className="flex flex-col items-stretch justify-evenly gap-4">
         <div className="flex flex-col items-center gap-2">
-          <span className="font-bold text-xl text-gray-500">Tested games</span>
+          <span className="text-xl font-bold text-gray-500">Tested games</span>
           <ProgressBar
             progress={
               (stats.stats?.accumulation ?? 0) /
@@ -97,9 +98,12 @@ export default function Stats({ api_route }: { api_route: string }) {
           </span>
         </div>
         <div className="flex flex-col items-center gap-2">
-          <span className="font-bold text-xl text-gray-500">
+          <span className="text-xl font-bold text-gray-500">
             Your performance
           </span>
+          {stats.stats?.game_name ? (
+            <span className="font-bold">Game: {stats.stats?.game_name}</span>
+          ) : null}
           <ProgressBar
             progress={
               1 -
@@ -111,7 +115,7 @@ export default function Stats({ api_route }: { api_route: string }) {
           {stats?.stats?.place ? (
             <div className="flex flex-row items-center justify-start gap-2">
               <span className="font-bold">You are at</span>
-              <span className="font-bold text-xl text-zinc-300">
+              <span className="text-xl font-bold text-zinc-300">
                 {ordinal(Math.round(stats?.stats?.place ?? 0))} place
               </span>
             </div>
@@ -130,7 +134,7 @@ export default function Stats({ api_route }: { api_route: string }) {
       )}
     </>
   ) : (
-    <div className="font-bold text-red-800 flex flex-col gap-2">
+    <div className="flex flex-col font-bold text-red-800 gap-2">
       <span>Permission denied.</span>
       <span>
         Check whether you are logged in
