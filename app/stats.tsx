@@ -29,13 +29,13 @@ export function ProgressBar({
 const statsSchema = z.object({
   permitted: z.boolean(),
   started: z.boolean().optional(),
-  elo: z.number().optional(),
-  max_elo: z.number().optional(),
+  elo: z.number().optional().nullable(),
+  max_elo: z.number().optional().nullable(),
   place: z.number().optional().nullable(),
   places: z.number().optional(),
   accumulation: z.number().optional(),
   required_accumulation: z.number().optional(),
-  game_name: z.string().optional(),
+  game_name: z.string().optional().nullable(),
 });
 
 export default function Stats({ api_route }: { api_route: string }) {
