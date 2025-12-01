@@ -23,8 +23,10 @@ const PreferenceHistoryEntrySchema = z.object({
   game_names: z.tuple([z.string(), z.string()]),
   first_score: z.number(),
   author: z.string(),
+  author_team: z.string().nullable().optional(),
   timestamp: z.number(),
   elo_changes: z.array(EloChangeSchema),
+  counted: z.boolean(),
 });
 
 const PreferenceHistorySchema = z.array(PreferenceHistoryEntrySchema);
@@ -125,70 +127,19 @@ function computeChartData(
   }));
 }
 
-// ELO calculation functions
-const ELO_K = 32;
-const ELO_INITIAL = 1000;
+// Hypothetical leaderboard API response schema
+const HypotheticalLeaderboardEntrySchema = z.object({
+  name: z.string(),
+  team_id: z.string(),
+  current_score: z.number().nullable(),
+  hypothetical_score: z.number().nullable(),
+  delta: z.number().nullable(),
+  owned_by_excluded: z.boolean(),
+});
 
-function expectedScore(ratingA: number, ratingB: number): number {
-  return 1 / (1 + Math.pow(10, (ratingB - ratingA) / 400));
-}
+const HypotheticalLeaderboardSchema = z.array(HypotheticalLeaderboardEntrySchema);
 
-interface EloResult {
-  ratings: Map<string, number>;
-  gameNames: Map<string, string>;
-}
-
-function calculateElo(
-  history: PreferenceHistoryEntry[],
-  excludedAuthors: Set<string>
-): EloResult {
-  const ratings = new Map<string, number>();
-  const gameNames = new Map<string, string>();
-  const getOrInit = (id: string) => ratings.get(id) ?? ELO_INITIAL;
-
-  // Sort by timestamp to ensure correct order
-  const sorted = [...history].sort((a, b) => a.timestamp - b.timestamp);
-
-  for (const entry of sorted) {
-    // Always track game names
-    gameNames.set(entry.games[0], entry.game_names[0]);
-    gameNames.set(entry.games[1], entry.game_names[1]);
-    
-    if (excludedAuthors.has(entry.author)) continue;
-    const [gameA, gameB] = entry.games;
-    const rA = getOrInit(gameA);
-    const rB = getOrInit(gameB);
-    const eA = expectedScore(rA, rB);
-    ratings.set(gameA, rA + ELO_K * (entry.first_score - eA));
-    ratings.set(gameB, rB + ELO_K * ((1 - entry.first_score) - (1 - eA)));
-  }
-  return { ratings, gameNames };
-}
-
-interface LeaderboardEntry {
-  gameId: string;
-  gameName: string;
-  simulatedElo: number;
-  actualElo: number | null;
-  delta: number | null;
-}
-
-function computeLeaderboard(
-  simulatedRatings: Map<string, number>,
-  actualRatings: Map<string, number>,
-  gameNames: Map<string, string>
-): LeaderboardEntry[] {
-  const entries: LeaderboardEntry[] = [];
-
-  for (const [gameId, simulatedElo] of Array.from(simulatedRatings.entries())) {
-    const actualElo = actualRatings.get(gameId) ?? null;
-    const delta = actualElo !== null ? simulatedElo - actualElo : null;
-    const gameName = gameNames.get(gameId) || gameId;
-    entries.push({ gameId, gameName, simulatedElo, actualElo, delta });
-  }
-
-  return entries.sort((a, b) => b.simulatedElo - a.simulatedElo);
-}
+type HypotheticalLeaderboardEntry = z.infer<typeof HypotheticalLeaderboardEntrySchema>;
 
 function formatTime(timestamp: number, granularity: Granularity): string {
   const date = new Date(timestamp * 1000);
@@ -241,32 +192,34 @@ function EloChangeDisplay({ change }: { change: z.infer<typeof EloChangeSchema> 
   );
 }
 
-function GameDisplay({ name, id }: { name: string; id: string }) {
+function GameDisplay({ name, id, muted }: { name: string; id: string; muted?: boolean }) {
   return (
     <span className="flex flex-col">
-      <span className="text-green-300">{name}</span>
-      <span className="text-gray-500 text-xs font-mono">{id}</span>
+      <span className={muted ? "text-gray-500" : "text-green-300"}>{name}</span>
+      <span className={`text-xs font-mono ${muted ? "text-gray-600" : "text-gray-500"}`}>{id}</span>
     </span>
   );
 }
 
 function HistoryEntry({ entry }: { entry: PreferenceHistoryEntry }) {
+  const muted = !entry.counted;
   return (
-    <div className="flex flex-col gap-2 p-4 border-b border-zinc-700">
+    <div className={`flex flex-col gap-2 p-4 border-b border-zinc-700 ${muted ? "opacity-40" : ""}`}>
       <div className="flex flex-row flex-wrap items-center gap-4">
         <div className="flex flex-row items-center gap-2">
-          <GameDisplay name={entry.game_names[0]} id={entry.games[0]} />
+          <GameDisplay name={entry.game_names[0]} id={entry.games[0]} muted={muted} />
           <span className="text-gray-500">vs</span>
-          <GameDisplay name={entry.game_names[1]} id={entry.games[1]} />
+          <GameDisplay name={entry.game_names[1]} id={entry.games[1]} muted={muted} />
         </div>
         <span className="text-gray-500">|</span>
         <span>
-          Score: <span className="text-yellow-300">{entry.first_score.toFixed(2)}</span>
+          Score: <span className={muted ? "text-gray-500" : "text-yellow-300"}>{entry.first_score.toFixed(2)}</span>
         </span>
         <span className="text-gray-500">|</span>
-        <span className="text-gray-400">{entry.author}</span>
+        <span className={muted ? "text-gray-600" : "text-gray-400"}>{entry.author}</span>
+        {muted && <span className="text-gray-600 text-xs">(not counted)</span>}
         <span className="flex-grow" />
-        <span className="text-gray-500 text-sm">{formatTimestamp(entry.timestamp)}</span>
+        <span className={`text-sm ${muted ? "text-gray-600" : "text-gray-500"}`}>{formatTimestamp(entry.timestamp)}</span>
       </div>
       {entry.elo_changes.length > 0 && (
         <div className="flex flex-row flex-wrap gap-4 ml-4">
@@ -373,11 +326,11 @@ function ActivityChart({
 function SimulatedLeaderboard({
   leaderboard,
   excludedCount,
-  isStale,
+  isLoading,
 }: {
-  leaderboard: LeaderboardEntry[];
+  leaderboard: HypotheticalLeaderboardEntry[];
   excludedCount: number;
-  isStale: boolean;
+  isLoading: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -400,13 +353,14 @@ function SimulatedLeaderboard({
         <span className="text-gray-500 text-sm">
           (excluding {excludedCount} author{excludedCount !== 1 ? "s" : ""})
         </span>
+        {isLoading && <span className="text-yellow-400 text-xs ml-2">Loading...</span>}
       </button>
       {expanded && (
-        <div className={`transition-opacity ${isStale ? "opacity-60" : ""}`}>
+        <div className={`transition-opacity ${isLoading ? "opacity-60" : ""}`}>
           <div className="grid grid-cols-[auto_1fr_auto_auto] gap-x-4 px-4 pb-2 text-xs text-gray-500 border-b border-zinc-800">
             <span>#</span>
             <span>Game</span>
-            <span className="text-right">Simulated ELO</span>
+            <span className="text-right">Hypothetical ELO</span>
             <span className="text-right">Change</span>
           </div>
           <div className="max-h-80 overflow-auto scrollbar-thin scrollbar-thumb-zinc-600 scrollbar-track-zinc-800 hover:scrollbar-thumb-zinc-500">
@@ -414,24 +368,31 @@ function SimulatedLeaderboard({
               const isAffected = entry.delta !== null && entry.delta !== 0;
               return (
                 <div
-                  key={entry.gameId}
+                  key={entry.team_id}
                   className={`grid grid-cols-[auto_1fr_auto_auto] gap-x-4 px-4 py-2 text-sm border-b border-zinc-800 ${
-                    isAffected
+                    entry.owned_by_excluded
+                      ? "bg-purple-900/30 hover:bg-purple-900/40 border-l-2 border-l-purple-500"
+                      : isAffected
                       ? "bg-yellow-900/20 hover:bg-yellow-900/30"
                       : "hover:bg-zinc-800/50"
                   }`}
                 >
                   <span className="text-gray-500 w-8">{index + 1}</span>
                   <span className="flex flex-col min-w-0">
-                    <span className="text-green-300 truncate">
-                      {entry.gameName}
+                    <span className={`truncate ${entry.owned_by_excluded ? "text-purple-300" : "text-green-300"}`}>
+                      {entry.name}
+                      {entry.owned_by_excluded && <span className="ml-2 text-purple-400 text-xs">(excluded author&apos;s game)</span>}
                     </span>
                     <span className="text-gray-500 text-xs font-mono truncate">
-                      {entry.gameId}
+                      {entry.team_id}
                     </span>
                   </span>
                   <span className="text-right tabular-nums self-center">
-                    {entry.simulatedElo.toFixed(0)}
+                    {entry.hypothetical_score !== null ? (
+                      entry.hypothetical_score.toFixed(0)
+                    ) : (
+                      <span className="text-gray-500 italic">unrated</span>
+                    )}
                   </span>
                   <span className="text-right w-20 self-center">
                     {entry.delta !== null ? (
@@ -448,7 +409,7 @@ function SimulatedLeaderboard({
                         {entry.delta.toFixed(0)}
                       </span>
                     ) : (
-                      <span className="text-gray-500 italic">(new)</span>
+                      <span className="text-gray-500">—</span>
                     )}
                   </span>
                 </div>
@@ -583,15 +544,12 @@ function FilterControls({
   );
 }
 
-const VISIBLE_ENTRIES_INCREMENT = 100;
-
 export default function PreferenceHistoryTable({ api_route }: { api_route: string }) {
   const [user] = useAuthState(auth);
   const [history, setHistory] = useState<PreferenceHistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filterInput, setFilterInput] = useState("");
-  const [visibleEntries, setVisibleEntries] = useState(VISIBLE_ENTRIES_INCREMENT);
   const [granularity, setGranularity] = useState<Granularity>("hour");
 
   const selectedAuthors = useMemo(() => {
@@ -621,22 +579,41 @@ export default function PreferenceHistoryTable({ api_route }: { api_route: strin
 
   const topAuthors = precomputed?.topAuthors || [];
 
-  // Compute actual ELO once (excluding nobody)
-  const actualEloResult = useMemo(() => {
-    if (history.length === 0) return { ratings: new Map<string, number>(), gameNames: new Map<string, string>() };
-    return calculateElo(history, new Set());
-  }, [history]);
+  // Fetch hypothetical leaderboard from API
+  const [leaderboard, setLeaderboard] = useState<HypotheticalLeaderboardEntry[]>([]);
+  const [leaderboardLoading, setLeaderboardLoading] = useState(false);
 
-  // Compute simulated ELO (excluding selected authors)
-  const simulatedEloResult = useMemo(() => {
-    if (history.length === 0) return { ratings: new Map<string, number>(), gameNames: new Map<string, string>() };
-    return calculateElo(history, deferredSelectedAuthors);
-  }, [history, deferredSelectedAuthors]);
+  useEffect(() => {
+    const fetchHypotheticalLeaderboard = async () => {
+      if (!user || deferredSelectedAuthors.size === 0) {
+        setLeaderboard([]);
+        return;
+      }
 
-  // Compute leaderboard comparison
-  const leaderboard = useMemo(() => {
-    return computeLeaderboard(simulatedEloResult.ratings, actualEloResult.ratings, actualEloResult.gameNames);
-  }, [simulatedEloResult, actualEloResult]);
+      setLeaderboardLoading(true);
+      try {
+        const excludedEmails = Array.from(deferredSelectedAuthors);
+        const res = await fetch(`${api_route}/admin/leaderboard/hypothetical`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${await user.getIdToken()}`,
+          },
+          body: JSON.stringify(excludedEmails),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setLeaderboard(HypotheticalLeaderboardSchema.parse(data));
+        }
+      } catch (e) {
+        console.error("Failed to fetch hypothetical leaderboard:", e);
+      }
+      setLeaderboardLoading(false);
+    };
+
+    fetchHypotheticalLeaderboard();
+  }, [user, deferredSelectedAuthors, api_route]);
 
   // Build label for selected authors
   const selectedLabel = useMemo(() => {
@@ -756,19 +733,11 @@ export default function PreferenceHistoryTable({ api_route }: { api_route: strin
       <SimulatedLeaderboard
         leaderboard={leaderboard}
         excludedCount={deferredSelectedAuthors.size}
-        isStale={isStale}
+        isLoading={leaderboardLoading}
       />
-      {history.slice(0, visibleEntries).map((entry, index) => (
+      {history.map((entry, index) => (
         <HistoryEntry key={index} entry={entry} />
       ))}
-      {visibleEntries < history.length && (
-        <button
-          onClick={() => setVisibleEntries((v) => v + VISIBLE_ENTRIES_INCREMENT)}
-          className="p-4 text-center text-gray-400 hover:text-gray-200 hover:bg-zinc-800 transition-colors"
-        >
-          Show more ({history.length - visibleEntries} remaining)
-        </button>
-      )}
     </div>
   );
 }
