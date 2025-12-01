@@ -1,5 +1,5 @@
 "use client";
-import { auth } from "../../../firebase";
+import { auth } from "../../firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { useState, useEffect, useMemo, useDeferredValue, useRef } from "react";
 import { z } from "zod";
@@ -11,6 +11,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import Link from "next/link";
 
 const EloChangeSchema = z.object({
   team_id: z.string(),
@@ -24,14 +25,31 @@ const PreferenceHistoryEntrySchema = z.object({
   first_score: z.number(),
   author: z.string(),
   author_team: z.string().nullable().optional(),
-  timestamp: z.number(),
+  timestamp: z.number().nullable().optional(),
   elo_changes: z.array(EloChangeSchema),
   counted: z.boolean(),
 });
 
-const PreferenceHistorySchema = z.array(PreferenceHistoryEntrySchema);
+const ReportEventSchema = z.object({
+  type: z.literal("report"),
+  game_team_id: z.string(),
+  game_name: z.string(),
+  reporter: z.string(),
+  short_reason: z.enum(["unclear", "buggy", "other"]),
+  timestamp: z.number().nullable().optional(),
+  report_url: z.string(),
+});
 
-type PreferenceHistoryEntry = z.infer<typeof PreferenceHistoryEntrySchema>;
+const PreferenceEventSchema = PreferenceHistoryEntrySchema.extend({
+  type: z.literal("preference"),
+});
+
+const EventSchema = z.discriminatedUnion("type", [ReportEventSchema, PreferenceEventSchema]);
+const EventsSchema = z.array(EventSchema);
+
+type ReportEvent = z.infer<typeof ReportEventSchema>;
+type PreferenceEvent = z.infer<typeof PreferenceEventSchema>;
+type Event = z.infer<typeof EventSchema>;
 
 type Granularity = "minute" | "hour" | "day" | "week";
 
@@ -56,20 +74,27 @@ interface PrecomputedData {
   topAuthors: { author: string; count: number }[];
 }
 
-function precomputeData(history: PreferenceHistoryEntry[]): PrecomputedData {
+function getEventAuthor(event: Event): string {
+  return event.type === "report" ? event.reporter : event.author;
+}
+
+function precomputeData(events: Event[]): PrecomputedData {
   const authorTimestamps = new Map<string, number[]>();
   const allTimestamps: number[] = [];
   const authorTotals = new Map<string, number>();
 
-  for (const entry of history) {
-    allTimestamps.push(entry.timestamp);
-    
-    if (!authorTimestamps.has(entry.author)) {
-      authorTimestamps.set(entry.author, []);
+  for (const event of events) {
+    const author = getEventAuthor(event);
+    if (event.timestamp !== undefined) {
+      allTimestamps.push(event.timestamp);
+      
+      if (!authorTimestamps.has(author)) {
+        authorTimestamps.set(author, []);
+      }
+      authorTimestamps.get(author)!.push(event.timestamp);
     }
-    authorTimestamps.get(entry.author)!.push(entry.timestamp);
     
-    authorTotals.set(entry.author, (authorTotals.get(entry.author) || 0) + 1);
+    authorTotals.set(author, (authorTotals.get(author) || 0) + 1);
   }
 
   const topAuthors = Array.from(authorTotals.entries())
@@ -170,7 +195,8 @@ function formatTime(timestamp: number, granularity: Granularity): string {
   }
 }
 
-function formatTimestamp(timestamp: number): string {
+function formatTimestamp(timestamp: number | undefined): string {
+  if (timestamp === undefined) return "Unknown time";
   return new Date(timestamp * 1000).toLocaleString();
 }
 
@@ -201,11 +227,12 @@ function GameDisplay({ name, id, muted }: { name: string; id: string; muted?: bo
   );
 }
 
-function HistoryEntry({ entry }: { entry: PreferenceHistoryEntry }) {
+function PreferenceEntry({ entry }: { entry: PreferenceEvent }) {
   const muted = !entry.counted;
   return (
     <div className={`flex flex-col gap-2 p-4 border-b border-zinc-700 ${muted ? "opacity-40" : ""}`}>
       <div className="flex flex-row flex-wrap items-center gap-4">
+        <span className="text-xs px-2 py-0.5 rounded bg-blue-900 text-blue-300">Preference</span>
         <div className="flex flex-row items-center gap-2">
           <GameDisplay name={entry.game_names[0]} id={entry.games[0]} muted={muted} />
           <span className="text-gray-500">vs</span>
@@ -230,6 +257,44 @@ function HistoryEntry({ entry }: { entry: PreferenceHistoryEntry }) {
       )}
     </div>
   );
+}
+
+function ReportEntry({ entry }: { entry: ReportEvent }) {
+  const reasonColors: Record<string, string> = {
+    unclear: "text-yellow-400",
+    buggy: "text-red-400",
+    other: "text-orange-400",
+  };
+
+  return (
+    <div className="flex flex-col gap-2 p-4 border-b border-zinc-700">
+      <div className="flex flex-row flex-wrap items-center gap-4">
+        <span className="text-xs px-2 py-0.5 rounded bg-red-900 text-red-300">Report</span>
+        <GameDisplay name={entry.game_name} id={entry.game_team_id} />
+        <span className="text-gray-500">|</span>
+        <span>
+          Reason: <span className={reasonColors[entry.short_reason] || "text-gray-300"}>{entry.short_reason}</span>
+        </span>
+        <span className="text-gray-500">|</span>
+        <span className="text-gray-400">{entry.reporter}</span>
+        <span className="flex-grow" />
+        <Link
+          href={entry.report_url}
+          className="text-sm text-blue-400 hover:text-blue-300 underline"
+        >
+          View Report
+        </Link>
+        <span className="text-sm text-gray-500">{formatTimestamp(entry.timestamp)}</span>
+      </div>
+    </div>
+  );
+}
+
+function EventEntry({ event }: { event: Event }) {
+  if (event.type === "report") {
+    return <ReportEntry entry={event} />;
+  }
+  return <PreferenceEntry entry={event} />;
 }
 
 function GranularitySelector({
@@ -544,9 +609,9 @@ function FilterControls({
   );
 }
 
-export default function PreferenceHistoryTable({ api_route }: { api_route: string }) {
+export default function EventHistoryTable({ api_route }: { api_route: string }) {
   const [user] = useAuthState(auth);
-  const [history, setHistory] = useState<PreferenceHistoryEntry[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filterInput, setFilterInput] = useState("");
@@ -560,10 +625,10 @@ export default function PreferenceHistoryTable({ api_route }: { api_route: strin
     return new Set(authors);
   }, [filterInput]);
 
-  // Precompute data once when history loads
+  // Precompute data once when events load
   const precomputed = useMemo(() => 
-    history.length > 0 ? precomputeData(history) : null,
-    [history]
+    events.length > 0 ? precomputeData(events) : null,
+    [events]
   );
 
   // Defer filter changes to avoid blocking UI
@@ -650,13 +715,13 @@ export default function PreferenceHistoryTable({ api_route }: { api_route: strin
   };
 
   useEffect(() => {
-    const getHistory = async () => {
+    const getEvents = async () => {
       if (!user) {
         setLoading(false);
         return;
       }
       try {
-        const res = await fetch(`${api_route}/admin/preferences/history`, {
+        const res = await fetch(`${api_route}/admin/history`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -673,13 +738,13 @@ export default function PreferenceHistoryTable({ api_route }: { api_route: strin
           return;
         }
         const data = await res.json();
-        setHistory(PreferenceHistorySchema.parse(data));
+        setEvents(EventsSchema.parse(data));
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to fetch history");
       }
       setLoading(false);
     };
-    getHistory();
+    getEvents();
   }, [user?.uid, api_route]);
 
   if (loading) {
@@ -701,15 +766,15 @@ export default function PreferenceHistoryTable({ api_route }: { api_route: strin
   if (!user) {
     return (
       <div className="flex items-center justify-center p-8">
-        <span className="text-gray-400">Please log in to view preference history.</span>
+        <span className="text-gray-400">Please log in to view event history.</span>
       </div>
     );
   }
 
-  if (history.length === 0) {
+  if (events.length === 0) {
     return (
       <div className="flex items-center justify-center p-8">
-        <span className="text-gray-400">No preference history found.</span>
+        <span className="text-gray-400">No event history found.</span>
       </div>
     );
   }
@@ -735,8 +800,8 @@ export default function PreferenceHistoryTable({ api_route }: { api_route: strin
         excludedCount={deferredSelectedAuthors.size}
         isLoading={leaderboardLoading}
       />
-      {history.map((entry, index) => (
-        <HistoryEntry key={index} entry={entry} />
+      {events.map((event, index) => (
+        <EventEntry key={index} event={event} />
       ))}
     </div>
   );
