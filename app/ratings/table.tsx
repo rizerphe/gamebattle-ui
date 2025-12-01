@@ -104,11 +104,7 @@ export default function Ratings({ api_route }: { api_route: string }) {
             >
               {author}
               <span className="text-gray-400 text-sm flex flex-row">
-                {author}
-                &nbsp;&#x2022;&nbsp;
-                {
-                  author // The name was here
-                }
+                {metadata.name}
               </span>
             </span>
             <span
