@@ -85,7 +85,7 @@ function precomputeData(events: Event[]): PrecomputedData {
 
   for (const event of events) {
     const author = getEventAuthor(event);
-    if (event.timestamp !== undefined) {
+    if (event.timestamp != null) {
       allTimestamps.push(event.timestamp);
       
       if (!authorTimestamps.has(author)) {
@@ -195,8 +195,8 @@ function formatTime(timestamp: number, granularity: Granularity): string {
   }
 }
 
-function formatTimestamp(timestamp: number | undefined): string {
-  if (timestamp === undefined) return "Unknown time";
+function formatTimestamp(timestamp: number | null | undefined): string {
+  if (timestamp == null) return "Unknown time";
   return new Date(timestamp * 1000).toLocaleString();
 }
 
