@@ -20,6 +20,7 @@ const EloChangeSchema = z.object({
 
 const PreferenceHistoryEntrySchema = z.object({
   games: z.tuple([z.string(), z.string()]),
+  game_names: z.tuple([z.string(), z.string()]),
   first_score: z.number(),
   author: z.string(),
   timestamp: z.number(),
@@ -124,6 +125,71 @@ function computeChartData(
   }));
 }
 
+// ELO calculation functions
+const ELO_K = 32;
+const ELO_INITIAL = 1000;
+
+function expectedScore(ratingA: number, ratingB: number): number {
+  return 1 / (1 + Math.pow(10, (ratingB - ratingA) / 400));
+}
+
+interface EloResult {
+  ratings: Map<string, number>;
+  gameNames: Map<string, string>;
+}
+
+function calculateElo(
+  history: PreferenceHistoryEntry[],
+  excludedAuthors: Set<string>
+): EloResult {
+  const ratings = new Map<string, number>();
+  const gameNames = new Map<string, string>();
+  const getOrInit = (id: string) => ratings.get(id) ?? ELO_INITIAL;
+
+  // Sort by timestamp to ensure correct order
+  const sorted = [...history].sort((a, b) => a.timestamp - b.timestamp);
+
+  for (const entry of sorted) {
+    // Always track game names
+    gameNames.set(entry.games[0], entry.game_names[0]);
+    gameNames.set(entry.games[1], entry.game_names[1]);
+    
+    if (excludedAuthors.has(entry.author)) continue;
+    const [gameA, gameB] = entry.games;
+    const rA = getOrInit(gameA);
+    const rB = getOrInit(gameB);
+    const eA = expectedScore(rA, rB);
+    ratings.set(gameA, rA + ELO_K * (entry.first_score - eA));
+    ratings.set(gameB, rB + ELO_K * ((1 - entry.first_score) - (1 - eA)));
+  }
+  return { ratings, gameNames };
+}
+
+interface LeaderboardEntry {
+  gameId: string;
+  gameName: string;
+  simulatedElo: number;
+  actualElo: number | null;
+  delta: number | null;
+}
+
+function computeLeaderboard(
+  simulatedRatings: Map<string, number>,
+  actualRatings: Map<string, number>,
+  gameNames: Map<string, string>
+): LeaderboardEntry[] {
+  const entries: LeaderboardEntry[] = [];
+
+  for (const [gameId, simulatedElo] of Array.from(simulatedRatings.entries())) {
+    const actualElo = actualRatings.get(gameId) ?? null;
+    const delta = actualElo !== null ? simulatedElo - actualElo : null;
+    const gameName = gameNames.get(gameId) || gameId;
+    entries.push({ gameId, gameName, simulatedElo, actualElo, delta });
+  }
+
+  return entries.sort((a, b) => b.simulatedElo - a.simulatedElo);
+}
+
 function formatTime(timestamp: number, granularity: Granularity): string {
   const date = new Date(timestamp * 1000);
   switch (granularity) {
@@ -175,14 +241,23 @@ function EloChangeDisplay({ change }: { change: z.infer<typeof EloChangeSchema> 
   );
 }
 
+function GameDisplay({ name, id }: { name: string; id: string }) {
+  return (
+    <span className="flex flex-col">
+      <span className="text-green-300">{name}</span>
+      <span className="text-gray-500 text-xs font-mono">{id}</span>
+    </span>
+  );
+}
+
 function HistoryEntry({ entry }: { entry: PreferenceHistoryEntry }) {
   return (
     <div className="flex flex-col gap-2 p-4 border-b border-zinc-700">
       <div className="flex flex-row flex-wrap items-center gap-4">
         <div className="flex flex-row items-center gap-2">
-          <span className="text-green-300 font-mono">{entry.games[0]}</span>
+          <GameDisplay name={entry.game_names[0]} id={entry.games[0]} />
           <span className="text-gray-500">vs</span>
-          <span className="text-green-300 font-mono">{entry.games[1]}</span>
+          <GameDisplay name={entry.game_names[1]} id={entry.games[1]} />
         </div>
         <span className="text-gray-500">|</span>
         <span>
@@ -291,6 +366,97 @@ function ActivityChart({
           )}
         </AreaChart>
       </ResponsiveContainer>
+    </div>
+  );
+}
+
+function SimulatedLeaderboard({
+  leaderboard,
+  excludedCount,
+  isStale,
+}: {
+  leaderboard: LeaderboardEntry[];
+  excludedCount: number;
+  isStale: boolean;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  if (excludedCount === 0) {
+    return null;
+  }
+
+  return (
+    <div className="border-b border-zinc-700">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full p-4 flex items-center gap-2 text-left hover:bg-zinc-800 transition-colors"
+      >
+        <span className={`transition-transform ${expanded ? "rotate-90" : ""}`}>
+          ▶
+        </span>
+        <span className="text-green-300 font-medium">
+          Simulated Leaderboard
+        </span>
+        <span className="text-gray-500 text-sm">
+          (excluding {excludedCount} author{excludedCount !== 1 ? "s" : ""})
+        </span>
+      </button>
+      {expanded && (
+        <div className={`transition-opacity ${isStale ? "opacity-60" : ""}`}>
+          <div className="grid grid-cols-[auto_1fr_auto_auto] gap-x-4 px-4 pb-2 text-xs text-gray-500 border-b border-zinc-800">
+            <span>#</span>
+            <span>Game</span>
+            <span className="text-right">Simulated ELO</span>
+            <span className="text-right">Change</span>
+          </div>
+          <div className="max-h-80 overflow-auto scrollbar-thin scrollbar-thumb-zinc-600 scrollbar-track-zinc-800 hover:scrollbar-thumb-zinc-500">
+            {leaderboard.map((entry, index) => {
+              const isAffected = entry.delta !== null && entry.delta !== 0;
+              return (
+                <div
+                  key={entry.gameId}
+                  className={`grid grid-cols-[auto_1fr_auto_auto] gap-x-4 px-4 py-2 text-sm border-b border-zinc-800 ${
+                    isAffected
+                      ? "bg-yellow-900/20 hover:bg-yellow-900/30"
+                      : "hover:bg-zinc-800/50"
+                  }`}
+                >
+                  <span className="text-gray-500 w-8">{index + 1}</span>
+                  <span className="flex flex-col min-w-0">
+                    <span className="text-green-300 truncate">
+                      {entry.gameName}
+                    </span>
+                    <span className="text-gray-500 text-xs font-mono truncate">
+                      {entry.gameId}
+                    </span>
+                  </span>
+                  <span className="text-right tabular-nums self-center">
+                    {entry.simulatedElo.toFixed(0)}
+                  </span>
+                  <span className="text-right w-20 self-center">
+                    {entry.delta !== null ? (
+                      <span
+                        className={
+                          entry.delta > 0
+                            ? "text-green-400"
+                            : entry.delta < 0
+                            ? "text-red-400"
+                            : "text-gray-500"
+                        }
+                      >
+                        {entry.delta > 0 ? "+" : ""}
+                        {entry.delta.toFixed(0)}
+                      </span>
+                    ) : (
+                      <span className="text-gray-500 italic">(new)</span>
+                    )}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -455,6 +621,23 @@ export default function PreferenceHistoryTable({ api_route }: { api_route: strin
 
   const topAuthors = precomputed?.topAuthors || [];
 
+  // Compute actual ELO once (excluding nobody)
+  const actualEloResult = useMemo(() => {
+    if (history.length === 0) return { ratings: new Map<string, number>(), gameNames: new Map<string, string>() };
+    return calculateElo(history, new Set());
+  }, [history]);
+
+  // Compute simulated ELO (excluding selected authors)
+  const simulatedEloResult = useMemo(() => {
+    if (history.length === 0) return { ratings: new Map<string, number>(), gameNames: new Map<string, string>() };
+    return calculateElo(history, deferredSelectedAuthors);
+  }, [history, deferredSelectedAuthors]);
+
+  // Compute leaderboard comparison
+  const leaderboard = useMemo(() => {
+    return computeLeaderboard(simulatedEloResult.ratings, actualEloResult.ratings, actualEloResult.gameNames);
+  }, [simulatedEloResult, actualEloResult]);
+
   // Build label for selected authors
   const selectedLabel = useMemo(() => {
     const authors = Array.from(deferredSelectedAuthors);
@@ -570,6 +753,11 @@ export default function PreferenceHistoryTable({ api_route }: { api_route: strin
         </div>
         <ActivityChart data={chartData} selectedLabel={selectedLabel} granularity={deferredGranularity} />
       </div>
+      <SimulatedLeaderboard
+        leaderboard={leaderboard}
+        excludedCount={deferredSelectedAuthors.size}
+        isStale={isStale}
+      />
       {history.slice(0, visibleEntries).map((entry, index) => (
         <HistoryEntry key={index} entry={entry} />
       ))}
