@@ -115,6 +115,8 @@ const ReportEventSchema = z.object({
   short_reason: z.enum(["unclear", "buggy", "other"]),
   timestamp: z.number().nullable().optional(),
   report_url: z.string(),
+  reason: z.string().nullable().optional(),
+  output: z.string().nullable().optional(),
 });
 
 const PreferenceEventSchema = PreferenceHistoryEntrySchema.extend({
