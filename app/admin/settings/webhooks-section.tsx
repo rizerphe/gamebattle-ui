@@ -17,14 +17,13 @@ import {
 } from "@/lib/api";
 import { auth } from "../../firebase";
 
-type Draft = {
-  on_first_report: boolean;
-  threshold: number | null;
-  on_removed: boolean;
-};
+type Draft = { event: Webhook["event"]; threshold: number | null };
 
-/** The threshold a newly ticked "reports reached" box starts at. */
-const DEFAULT_THRESHOLD = 3;
+const EVENTS: { event: Webhook["event"]; label: string }[] = [
+  { event: "first_report", label: "First report" },
+  { event: "threshold", label: "N reports reached" },
+  { event: "removed", label: "Game automatically removed" },
+];
 
 /** Webhook URLs carry a secret token, so only the host is shown. */
 function hostOf(url: string): string {
@@ -36,11 +35,7 @@ function hostOf(url: string): string {
 }
 
 function sameDraft(a: Draft, b: Draft): boolean {
-  return (
-    a.on_first_report === b.on_first_report &&
-    a.threshold === b.threshold &&
-    a.on_removed === b.on_removed
-  );
+  return a.event === b.event && a.threshold === b.threshold;
 }
 
 function Triggers({
@@ -53,76 +48,54 @@ function Triggers({
   disabled?: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-2 text-sm text-zinc-300">
-      <label className="flex items-center gap-2">
-        <input
-          type="checkbox"
-          disabled={disabled}
-          checked={value.on_first_report}
-          onChange={(event) =>
-            onChange({ ...value, on_first_report: event.target.checked })
-          }
-        />
-        First report
-      </label>
-      <label className="flex items-center gap-2">
-        <input
-          type="checkbox"
-          disabled={disabled}
-          checked={value.on_removed}
-          onChange={(event) =>
-            onChange({ ...value, on_removed: event.target.checked })
-          }
-        />
-        Game automatically removed
-        <span className="text-xs text-zinc-500">
-          (at {REPORTS_BEFORE_REMOVAL} reports)
-        </span>
-      </label>
-      <div className="flex items-center gap-2">
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
+    <div className="flex flex-wrap items-center gap-2">
+      {EVENTS.map(({ event, label }) => {
+        const on = value.event === event;
+        return (
+          <button
+            key={event}
+            type="button"
             disabled={disabled}
-            checked={value.threshold !== null}
-            onChange={(event) =>
+            aria-pressed={on}
+            onClick={() =>
               onChange({
-                ...value,
-                threshold: event.target.checked ? DEFAULT_THRESHOLD : null,
+                event,
+                threshold:
+                  event === "threshold" ? (value.threshold ?? 3) : null,
               })
             }
-          />
-          <span>
-            {value.threshold === null ? "N reports reached" : "reports reached"}
-          </span>
-        </label>
-        {value.threshold !== null ? (
-          <Input
-            type="number"
-            aria-label="Report count"
-            min={1}
-            max={REPORTS_BEFORE_REMOVAL}
-            disabled={disabled}
-            value={value.threshold}
-            onChange={(event) => {
-              const next = Math.round(Number(event.target.value));
-              if (Number.isFinite(next) && next >= 1) {
-                onChange({
-                  ...value,
-                  threshold: Math.min(next, REPORTS_BEFORE_REMOVAL),
-                });
-              }
-            }}
-            className="order-first h-8 w-16 bg-background"
-          />
-        ) : null}
-      </div>
+            className={`rounded border px-3 py-1.5 text-sm ${
+              on
+                ? "border-green-500 bg-green-950 text-green-200"
+                : "border-zinc-700 text-zinc-400 hover:border-zinc-500"
+            }`}
+          >
+            {label}
+          </button>
+        );
+      })}
+      {value.event === "threshold" ? (
+        <Input
+          type="number"
+          aria-label="Report count"
+          min={1}
+          max={REPORTS_BEFORE_REMOVAL}
+          disabled={disabled}
+          value={value.threshold ?? ""}
+          onChange={(event) => {
+            const next = Math.round(Number(event.target.value));
+            if (Number.isFinite(next) && next >= 1) {
+              onChange({
+                ...value,
+                threshold: Math.min(next, REPORTS_BEFORE_REMOVAL),
+              });
+            }
+          }}
+          className="h-8 w-16 bg-background"
+        />
+      ) : null}
     </div>
   );
-}
-
-function empty(draft: Draft): boolean {
-  return !draft.on_first_report && !draft.on_removed && draft.threshold === null;
 }
 
 function WebhookRow({
@@ -138,11 +111,7 @@ function WebhookRow({
 }) {
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<{ text: string; bad: boolean } | null>(null);
-  const saved: Draft = {
-    on_first_report: hook.on_first_report,
-    threshold: hook.threshold,
-    on_removed: hook.on_removed,
-  };
+  const saved: Draft = { event: hook.event, threshold: hook.threshold };
   const [draft, setDraft] = useState<Draft>(saved);
   const changed = !sameDraft(draft, saved);
 
@@ -178,17 +147,9 @@ function WebhookRow({
       <Triggers value={draft} onChange={setDraft} disabled={busy} />
       {changed ? (
         <div className="flex items-center gap-2">
-          <Button
-            disabled={busy || empty(draft)}
-            onClick={() => void run(() => onSave(draft))}
-          >
+          <Button disabled={busy} onClick={() => void run(() => onSave(draft))}>
             Save
           </Button>
-          {empty(draft) ? (
-            <span className="text-xs text-zinc-500">
-              Pick at least one notification.
-            </span>
-          ) : null}
         </div>
       ) : null}
       {note ? (
@@ -206,11 +167,7 @@ function AddWebhook({
   onAdd: (url: string, draft: Draft) => Promise<void>;
 }) {
   const [url, setUrl] = useState("");
-  const [draft, setDraft] = useState<Draft>({
-    on_first_report: false,
-    threshold: null,
-    on_removed: true,
-  });
+  const [draft, setDraft] = useState<Draft>({ event: "removed", threshold: null });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -239,7 +196,7 @@ function AddWebhook({
       />
       <Triggers value={draft} onChange={setDraft} disabled={busy} />
       <div>
-        <Button disabled={busy || !url.trim() || empty(draft)} onClick={() => void add()}>
+        <Button disabled={busy || !url.trim()} onClick={() => void add()}>
           Add webhook
         </Button>
       </div>
@@ -310,8 +267,8 @@ export default function WebhooksSection() {
     <section>
       <h2 className="text-xl font-bold text-zinc-100">Webhooks</h2>
       <p className="mt-1 text-sm text-zinc-500">
-        Discord-compatible endpoints, notified about reports on a game. A game
-        is removed automatically at {REPORTS_BEFORE_REMOVAL} reports.
+        Discord-compatible endpoints, each sent one kind of message. A game is
+        removed automatically at {REPORTS_BEFORE_REMOVAL} reports.
       </p>
       <AdminGate
         loading={query.isPending && !query.error}
@@ -326,7 +283,7 @@ export default function WebhooksSection() {
               <ul>
                 {query.data.map((hook) => (
                   <WebhookRow
-                    key={`${hook.id}-${hook.on_first_report}-${hook.threshold}-${hook.on_removed}`}
+                    key={`${hook.id}-${hook.event}-${hook.threshold}`}
                     hook={hook}
                     onSave={(draft) => save(hook, draft)}
                     onTest={async () => {
