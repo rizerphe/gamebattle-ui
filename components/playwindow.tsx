@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { useEffect } from "react";
 import { auth, login, logout } from "@/app/firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 import Button from "@/components/app-button";
@@ -50,8 +51,29 @@ function Action({
 
 export default function PlayWindow() {
   const [user, loading] = useAuthState(auth);
-  const state = usePhase().data;
+  const phase = usePhase();
+  const state = phase.data;
+  const refetchPhase = phase.refetch;
   const player = usePlayer().data;
+  const nextAt = state ? nextStart(state)?.at : undefined;
+
+  // Refetch the phase when the countdown ends, and keep trying every second
+  // until the server reports the new phase (which re-runs this effect).
+  useEffect(() => {
+    if (nextAt === undefined) return;
+    let interval: number | undefined;
+    const timeout = window.setTimeout(
+      () => {
+        void refetchPhase();
+        interval = window.setInterval(() => void refetchPhase(), 1000);
+      },
+      Math.max(0, nextAt * 1000 - Date.now())
+    );
+    return () => {
+      window.clearTimeout(timeout);
+      window.clearInterval(interval);
+    };
+  }, [nextAt, state?.phase, refetchPhase]);
 
   if (state?.phase === "preparation") {
     return <Countdown at={nextStart(state)} />;
