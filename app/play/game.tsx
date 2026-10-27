@@ -1,9 +1,14 @@
 "use client";
+import { API_ROUTE, API_WS_ROUTE } from "@/lib/api-route";
 import { auth } from "../firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import useWebSocket from "react-use-websocket";
-import Terminal from "./terminal";
+import { ticketSchema } from "../../lib/api";
+
+// xterm touches `self` on import, so it cannot be prerendered.
+const Terminal = dynamic(() => import("./terminal"), { ssr: false });
 
 export function GameText({
   send,
@@ -29,50 +34,46 @@ export function GameText({
   );
 }
 
+export type GameFinishKind = "running" | "exited" | "terminated";
+
 export default function Game({
-  api_route,
   session_id,
-  game,
   setConnected,
   inputRef,
   gameRunning,
   setGameRunning,
+  onFinishKind,
+  onGenuineExit,
 }: {
-  api_route: string;
   session_id: string;
-  game: number;
   setConnected: (connected: boolean) => void;
   inputRef: React.RefObject<HTMLDivElement>;
   gameRunning: boolean;
   setGameRunning: (running: boolean) => void;
+  onFinishKind?: (kind: GameFinishKind) => void;
+  onGenuineExit?: () => void;
 }) {
   const senderRef = useRef<(data: string) => any | null>(null);
   const clearerRef = useRef<() => void | null>(null);
 
   const [user] = useAuthState(auth);
-  const [newConnection, setNewConnection] = useState<boolean>(true);
-  const [idToken, setIdToken] = useState<string | null>(null);
+  const [ticket, setTicket] = useState<string | null>(null);
   const [nextMessage, setNextMessage] = useState<string | null>(null);
   const [newSize, setNewSize] = useState<{ cols: number; rows: number } | null>(
     null
   );
   const { readyState, sendMessage } = useWebSocket(
-    `${api_route}/sessions/${session_id}/${game}/ws`,
+    `${API_WS_ROUTE.replace(/\/$/, "")}/sessions/${session_id}/attach?ticket=${encodeURIComponent(ticket ?? "")}`,
     {
-      shouldReconnect: () => true,
-      reconnectAttempts: 10,
-      reconnectInterval: 1000,
+      shouldReconnect: () => false,
       onOpen: () => {
         clearerRef.current?.();
-        idToken && sendMessage(idToken);
         setConnected(true);
-        setNewConnection(true);
-
         if (newSize) {
           sendMessage(
             JSON.stringify({
               type: "resize",
-              cols: newSize.cols,
+              columns: newSize.cols,
               rows: newSize.rows,
             })
           );
@@ -82,20 +83,26 @@ export default function Game({
         setConnected(false);
       },
       onMessage: (e: any) => {
-        if (newConnection) {
-          setNewConnection(false);
-        }
         const message = JSON.parse(e.data);
         if (message.type === "stdout") {
           setGameRunning(true);
-          senderRef?.current && senderRef.current(message.data);
-        }
-        if (message.type === "bye") {
+          onFinishKind?.("running");
+          senderRef.current?.(message.data);
+        } else if (message.type === "checkpoint") {
+          setGameRunning(true);
+          onFinishKind?.("running");
+          senderRef.current?.(message.state);
+        } else if (message.type === "process-exited") {
           setGameRunning(false);
+          onFinishKind?.("exited");
+          onGenuineExit?.();
+        } else if (message.type === "process-terminated") {
+          setGameRunning(false);
+          onFinishKind?.("terminated");
         }
       },
     },
-    (idToken ? true : false) && gameRunning
+    ticket !== null
   );
 
   useEffect(() => {
@@ -115,7 +122,7 @@ export default function Game({
       sendMessage(
         JSON.stringify({
           type: "resize",
-          cols: newSize.cols,
+          columns: newSize.cols,
           rows: newSize.rows,
         })
       );
@@ -123,9 +130,24 @@ export default function Game({
   }, [newSize]);
 
   useEffect(() => {
+    setTicket(null);
     if (!user) return;
-    user.getIdToken().then(setIdToken);
-  }, [user?.uid]);
+    let cancelled = false;
+    (async () => {
+      const response = await fetch(
+        `${API_ROUTE}/sessions/${session_id}/tickets`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${await user.getIdToken()}` },
+        }
+      );
+      if (!response.ok || cancelled) return;
+      setTicket(ticketSchema.parse(await response.json()).ticket);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user, session_id]);
 
   return (
     <GameText

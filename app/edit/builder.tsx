@@ -1,118 +1,199 @@
 "use client";
+import { API_ROUTE } from "@/lib/api-route";
 import { auth } from "../firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Select from "react-select";
 import { redirect } from "next/navigation";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { gameSchema, sessionSchema, snapshotSchema, type Game } from "../../lib/api";
+import { usePlayer } from "@/components/permissions";
+
+async function putGameName(
+  token: string,
+  name: string,
+): Promise<Game> {
+  const response = await fetch(`${API_ROUTE}/game`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ name }),
+  });
+  if (!response.ok) throw new Error("Failed to save game name");
+  return gameSchema.parse(await response.json());
+}
+
+function playHref(sessionId: string, game_id: string | null, returnTo?: string): string {
+  if (game_id && returnTo) {
+    return `/play/own/${sessionId}/${game_id}?to=${encodeURIComponent(returnTo)}`;
+  }
+  return `/play/own/${sessionId}`;
+}
 
 export default function Builder({
   files,
-  api_route,
   modified_files,
   game_id = null,
+  snapshot_id,
+  canEdit,
+  dirty = false,
+  returnTo,
+  showPublish = true,
 }: {
   files: { path: string; content: string }[];
-  api_route: string;
   modified_files: { path: string; content: string }[];
   game_id?: string | null;
+  snapshot_id?: string;
+  canEdit: boolean;
+  dirty?: boolean;
+  returnTo?: string;
+  showPublish?: boolean;
 }) {
   const [user] = useAuthState(auth);
-  const [building, setBuilding] = useState(false);
-  const [built, setBuilt] = useState<string | null>(null);
+  const [running, setRunning] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [launched, setLaunched] = useState<string | null>(null);
+  const admin = usePlayer().data?.admin ?? false;
+  const canRename = canEdit && !game_id;
+  const canRunOwn = !game_id && (canEdit || admin);
+  const canRunAdmin = !!game_id && admin;
 
   const queryClient = useQueryClient();
 
-  const {
-    data: raw_metadata,
-    isLoading,
-  }: {
-    data?: { name: string; file: string };
-    isLoading: boolean;
-  } = useQuery({
-    queryKey: [game_id ? `metadata-${game_id}` : "metadata", user?.uid],
+  const gameKey = game_id ? ["game", "game", game_id] : ["game", user?.uid];
+  const { data: game, isLoading } = useQuery({
+    queryKey: gameKey,
     queryFn: async () => {
       if (!user) {
         throw new Error("User not authenticated");
       }
       const response = await fetch(
-        game_id
-          ? `${api_route}/admin/game/${game_id}/meta`
-          : `${api_route}/game/meta`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${await user.getIdToken()}`,
-          },
-        }
+        game_id ? `${API_ROUTE}/games/${game_id}` : `${API_ROUTE}/game`,
+        { headers: { Authorization: `Bearer ${await user.getIdToken()}` } }
       );
-      if (!response.ok) throw new Error("Failed to fetch metadata");
-      const metadata = await response.json();
-      return metadata;
+      if (!response.ok) throw new Error("Failed to fetch game");
+      return gameSchema.parse(await response.json());
     },
     enabled: !!user,
-    placeholderData: { name: "", file: "" },
   });
-  const metadata = raw_metadata ?? { name: "", file: "" };
 
-  const candidates = files.filter(
-    (file) => file.path.endsWith(".py") && !file.path.includes(" ")
+  const [draftName, setDraftName] = useState<string | undefined>(undefined);
+  const [entrypoint, setEntrypoint] = useState("");
+  const name = draftName ?? game?.name ?? "";
+
+  const candidates = useMemo(
+    () =>
+      files.filter(
+        (file) => file.path.endsWith(".py") && !file.path.includes(" ")
+      ),
+    [files]
   );
+  const entry =
+    entrypoint && files.some((file) => file.path === entrypoint)
+      ? entrypoint
+      : candidates.length === 1
+        ? candidates[0].path
+        : "";
 
-  if (!metadata.file || !files.find((file) => file.path === metadata.file)) {
-    if (candidates.length === 1) {
-      metadata.file = candidates[0].path;
+  const runBlocked =
+    modified_files.length > 0 ||
+    !snapshot_id ||
+    !files.find((file) => file.path === entry) ||
+    dirty;
+
+  useEffect(() => {
+    if (!canRename || !user || draftName === undefined) return;
+    const trimmed = draftName.trim();
+    if (!trimmed || trimmed.length > 80 || trimmed === game?.name) return;
+    const handle = setTimeout(() => {
+      void user.getIdToken().then(async (token) => {
+        try {
+          queryClient.setQueryData(
+            ["game", user.uid],
+            await putGameName(token, trimmed)
+          );
+        } catch (error) {
+          console.error(error);
+        }
+      });
+    }, 400);
+    return () => clearTimeout(handle);
+  }, [canRename, draftName, game?.name, queryClient, user]);
+
+  async function startRun() {
+    if (!user || runBlocked) return;
+    const trimmed = name.trim();
+    if (
+      canRename &&
+      trimmed &&
+      trimmed.length <= 80 &&
+      trimmed !== game?.name
+    ) {
+      try {
+        queryClient.setQueryData(
+          ["game", user.uid],
+          await putGameName(await user.getIdToken(), trimmed)
+        );
+      } catch (error) {
+        console.error(error);
+      }
     }
+    setRunning(true);
+    const token = await user.getIdToken();
+    const response = await fetch(
+      canRunAdmin
+        ? `${API_ROUTE}/games/${game_id}/sessions`
+        : `${API_ROUTE}/sessions`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: canRunAdmin ? undefined : JSON.stringify({ game: snapshot_id }),
+      }
+    );
+    if (!response.ok) {
+      console.error(response);
+      setRunning(false);
+      return;
+    }
+    setLaunched(sessionSchema.parse(await response.json()).id);
   }
 
-  const { mutate: setMetadata } = useMutation({
-    mutationFn: async (_: { name: string; file: string }) => {},
-    onMutate: async ({ name, file }) => {
-      await queryClient.cancelQueries({
-        queryKey: [game_id ? `metadata-${game_id}` : "metadata", user?.uid],
-      });
-
-      queryClient.setQueryData(
-        [game_id ? `metadata-${game_id}` : "metadata", user?.uid],
-        {
-          name,
-          file,
-        }
-      );
-    },
-  });
-
-  return built ? (
-    redirect("/play/own/" + built + (game_id ? `/${game_id}` : ""))
+  return launched ? (
+    redirect(playHref(launched, game_id, returnTo))
   ) : (
     <>
-      <div className="flex flex-row items-center gap-2 p-2 cursor-pointer bg-zinc-700">
-        <span>Build</span>
+      <div className="flex flex-row items-center p-2 cursor-pointer gap-2 bg-zinc-700">
+        <span>Run</span>
       </div>
-      <div className="flex flex-col items-stretch gap-2 p-2 overflow-visible">
-        <div className="flex flex-row items-center gap-2 justify-between">
+      <div className="flex flex-col items-stretch p-2 overflow-visible gap-2">
+        <div className="flex flex-row items-center justify-between gap-2">
           <span>Name:</span>
           <input
             className={`px-2 py-1 bg-zinc-700 rounded flex-1 ${
-              metadata.name ? "" : "outline outline-2 outline-red-600"
+              name ? "" : "outline outline-2 outline-red-600"
             }`}
-            value={metadata.name}
-            onChange={(e) => setMetadata({ ...metadata, name: e.target.value })}
+            value={name}
+            disabled={!canRename}
+            onChange={(e) => setDraftName(e.target.value)}
           />
         </div>
         <div className="flex flex-row items-center gap-2 justify-between">
           <span>Entrypoint:</span>
           <Select
             className={`flex-1 ${
-              files.find((file) => file.path === metadata.file)
+              files.find((file) => file.path === entry)
                 ? ""
                 : "outline outline-2 outline-red-600"
             }`}
-            value={files.find((file) => file.path === metadata.file) ?? null}
+            value={files.find((file) => file.path === entry) ?? null}
             onChange={(option) => {
               if (!option?.path) return;
-              setMetadata({ ...metadata, file: option.path });
+              setEntrypoint(option.path);
             }}
             getOptionLabel={(option) => option.path}
             theme={(theme) => ({
@@ -138,6 +219,7 @@ export default function Builder({
               },
             })}
             isLoading={isLoading}
+            isDisabled={!canEdit}
             isClearable={false}
             isSearchable={true}
             options={candidates}
@@ -152,78 +234,65 @@ export default function Builder({
             entry points.
           </span>
         )}
-        <div
-          className={`flex flex-row items-center justify-center gap-2 p-2 rounded ${
-            modified_files.length ||
-            !metadata.name ||
-            !files.find((file) => file.path === metadata.file)
-              ? "bg-zinc-700 hover:bg-zinc-600"
-              : "bg-blue-700 hover:bg-blue-600"
-          } cursor-pointer`}
-          onClick={async () => {
-            if (modified_files.length) return;
-            if (!metadata.name) return;
-            if (!files.find((file) => file.path === metadata.file)) return;
-            setBuilding(true);
-            await fetch(`${api_route}/game/build`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${await user?.getIdToken()}`,
-              },
-              body: JSON.stringify({ ...metadata, game_id }),
-            });
-            const response = await fetch(`${api_route}/sessions/own`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${await user?.getIdToken()}`,
-              },
-              body: JSON.stringify({
-                game_id,
-              }),
-            });
-            if (!response.ok) {
-              console.error(response);
-              setBuilding(false);
-              return;
-            }
-            const session = await response.json();
-            setBuilt(session);
-          }}
-        >
-          {building ? <span>Building...</span> : <span>Build and Test</span>}
-        </div>
-        {game_id ? (
+        {canRunOwn || canRunAdmin ? (
+          <>
+            <button
+              type="button"
+              disabled={runBlocked || running}
+              onClick={() => void startRun()}
+              className={`flex flex-row items-center justify-center gap-2 p-2 rounded ${
+                runBlocked || running
+                  ? "bg-zinc-700 text-zinc-500"
+                  : "bg-blue-700 hover:bg-blue-600 text-zinc-100 cursor-pointer"
+              }`}
+            >
+              {running ? <span>Starting…</span> : <span>Run latest</span>}
+            </button>
+            <span className="text-zinc-500 text-sm">
+              Launches the latest snapshot. This does not publish.
+            </span>
+          </>
+        ) : !game_id ? (
+          <span className="text-zinc-500 text-sm">Running is closed.</span>
+        ) : null}
+        {game_id && showPublish ? (
           <div
-            className="flex flex-row items-center justify-center gap-2 p-2 rounded bg-zinc-700 hover:bg-zinc-600"
+            className={`flex flex-row items-center justify-center gap-2 p-2 rounded ${
+              modified_files.length || dirty || !snapshot_id
+                ? "bg-zinc-700 text-zinc-500"
+                : "bg-green-800 hover:bg-green-700 cursor-pointer"
+            }`}
             onClick={async () => {
-              setBuilding(true);
-              const response = await fetch(`${api_route}/sessions/own`, {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${await user?.getIdToken()}`,
-                },
-                body: JSON.stringify({
-                  game_id,
-                }),
-              });
+              if (modified_files.length || dirty || !snapshot_id) return;
+              setPublishing(true);
+              const response = await fetch(
+                `${API_ROUTE}/games/${game_id}/publish`,
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${await user?.getIdToken()}`,
+                  },
+                  body: JSON.stringify({ snapshot_id }),
+                }
+              );
+              setPublishing(false);
               if (!response.ok) {
                 console.error(response);
-                setBuilding(false);
                 return;
               }
-              const session = await response.json();
-              setBuilt(session);
+              queryClient.setQueryData(
+                ["snapshot", "published", game_id],
+                snapshotSchema.parse(await response.json())
+              );
             }}
           >
-            <span>Just Run</span>
+            {publishing ? <span>Publishing...</span> : <span>Publish</span>}
           </div>
         ) : null}
         {modified_files.length ? (
           <span className="text-zinc-500 text-sm">
-            Save your changes before building.
+            Save your changes before running.
           </span>
         ) : null}
       </div>

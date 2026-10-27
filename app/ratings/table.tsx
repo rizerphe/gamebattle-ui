@@ -1,7 +1,9 @@
 "use client";
+import { API_ROUTE } from "@/lib/api-route";
 import { auth } from "../firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
-import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { z } from "zod";
 import Link from "next/link";
 import { FaFilter, FaDownload } from "react-icons/fa";
@@ -24,29 +26,29 @@ const RatingsSchema = z.array(
   ])
 );
 
-export default function Ratings({ api_route }: { api_route: string }) {
+export default function Ratings() {
   const [user] = useAuthState(auth);
-  const [ratings, setRatings] = useState<z.infer<typeof RatingsSchema>>([]);
   const [filterByReports, setFilterByReports] = useState(false);
   const [filterByAccumulation, setFilterByAccumulation] = useState(false);
 
-  useEffect(() => {
-    const getLeaderboard = async () => {
-      const res = await fetch(`${api_route}/allstats`, {
-        method: "GET",
+  const ratingsQuery = useQuery({
+    queryKey: ["allstats", user?.uid ?? "signed-out"],
+    enabled: !!user,
+    queryFn: async () => {
+      const res = await fetch(`${API_ROUTE}/allstats`, {
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${await user?.getIdToken()}`,
+          Authorization: `Bearer ${await user!.getIdToken()}`,
         },
       });
-      const data = await res.json();
-      setRatings(RatingsSchema.parse(data));
-    };
-    getLeaderboard();
-  }, [user?.uid]);
+      if (!res.ok) throw new Error("Could not load ratings");
+      return RatingsSchema.parse(await res.json());
+    },
+  });
+  const ratings = ratingsQuery.data ?? [];
 
   const download_csv_data = async () => {
-    const csv_data = await fetch(`${api_route}/allstats/csv`, {
+    const csv_data = await fetch(`${API_ROUTE}/allstats/csv`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -132,7 +134,7 @@ export default function Ratings({ api_route }: { api_route: string }) {
                     : "text-yellow-200"
                   : "text-gray-200"
               }`}
-              href={`/report/${metadata.team_id}/1`}
+              href={`/admin/students/${metadata.team_id}/reports`}
             >
               {position.reports} Reports
             </Link>

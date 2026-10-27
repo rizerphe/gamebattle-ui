@@ -1,92 +1,108 @@
 "use client";
-import moment from "moment";
-import { useEffect, useState } from "react";
+import { API_ROUTE } from "@/lib/api-route";
+import { useEffect, useRef, useState } from "react";
+import type { User } from "firebase/auth";
 import { auth } from "../firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
-import { redirect } from "next/navigation";
-import { z } from "zod";
-import Link from "next/link";
+import { usePhase } from "@/components/permissions";
+import { comparisonSchema, failureDetail, type Comparison } from "@/lib/api";
+import { canCompare } from "@/lib/phase";
+import ComparisonPlay from "./comparison";
+import GamesPlaceholder from "./games-placeholder";
 
-const session_schema = z.object({
-  id: z.string(),
-  games: z.array(
-    z.object({
-      name: z.string(),
-      over: z.boolean(),
-    })
-  ),
-  launch_time: z.number(),
-});
+async function requestComparison(
+  user: User,
+): Promise<{ comparison: Comparison } | { notice: string }> {
+  const response = await fetch(`${API_ROUTE}/comparisons`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${await user.getIdToken()}` },
+  });
+  if (response.status === 403) return { notice: "Comparisons are closed." };
+  if (!response.ok) {
+    return { notice: await failureDetail(response, "No games to compare.") };
+  }
+  const parsed = comparisonSchema.safeParse(await response.json());
+  return parsed.success
+    ? { comparison: parsed.data }
+    : { notice: "Could not open the comparison." };
+}
 
-type Session = z.infer<typeof session_schema>;
-
-export default function Select({ api_route }: { api_route: string }) {
+export default function Select() {
   const [user] = useAuthState(auth);
-  const [sessions, setSessions] = useState<Session[] | null>(null);
-  const [redirectDestination, setRedirectDestination] = useState<string | null>(
-    null
-  );
+  const phase = usePhase();
+  const [notice, setNotice] = useState<string | null>(null);
+  const [comparison, setComparison] = useState<Comparison | null>(null);
+  const loadedFor = useRef<string | null>(null);
+
+  const show = (
+    result: { comparison: Comparison } | { notice: string },
+    uid: string,
+  ) => {
+    if ("notice" in result) {
+      setNotice(result.notice);
+      setComparison(null);
+      loadedFor.current = null;
+      return null;
+    }
+    setNotice(null);
+    loadedFor.current = uid;
+    return result.comparison;
+  };
 
   useEffect(() => {
-    (async () => {
-      const token = await user?.getIdToken();
-      if (!token) return null;
-      const response = await fetch(`${api_route}/sessions`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      const data = await response.json();
-      const mapped = Object.keys(data).map((uuid) =>
-        session_schema.parse({ id: uuid, ...data[uuid] })
-      );
-      if (mapped.length === 1) {
-        setRedirectDestination(`/play/${mapped[0].id}`);
-      }
-      setSessions(mapped);
-    })();
-  }, [user?.uid]);
-
-  useEffect(() => {
-    const initSession = async () => {
-      const token = await user?.getIdToken();
-      if (!token) return null;
-      const response = await fetch(`${api_route}/sessions`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      if (response.status !== 200) return;
-      const data = await response.json();
-      setRedirectDestination(`/play/${data}`);
+    if (!phase.data) return;
+    if (!canCompare(phase.data.phase)) {
+      loadedFor.current = null;
+      setComparison(null);
+      setNotice("Comparisons are closed.");
+      return;
+    }
+    if (!user) {
+      loadedFor.current = null;
+      setComparison(null);
+      setNotice("Sign in to play.");
+      return;
+    }
+    // A refetch would replace the comparison on screen and drop a restart
+    // whose response has not been applied yet.
+    if (loadedFor.current === user.uid) return;
+    const uid = user.uid;
+    let cancelled = false;
+    void requestComparison(user).then((result) => {
+      if (cancelled) return;
+      const next = show(result, uid);
+      if (next) setComparison(next);
+    });
+    return () => {
+      cancelled = true;
     };
-    if (!sessions) return;
-    if (sessions.length === 0) initSession();
-  }, [sessions]);
+  }, [phase.data, user]);
 
-  if (redirectDestination) {
-    redirect(redirectDestination);
+  const startNextComparison = async () => {
+    if (!user) return null;
+    return show(await requestComparison(user), user.uid);
+  };
+
+  if (comparison) {
+    return (
+      <ComparisonPlay comparison={comparison}
+        onComparison={setComparison}
+        onStartNext={startNextComparison}
+      />
+    );
   }
 
-  if (!sessions || sessions.length === 0) return null;
+  if (!phase.data || (canCompare(phase.data.phase) && user && notice === null)) {
+    return (
+      <div className="flex flex-row flex-1 gap-4 w-full">
+        <GamesPlaceholder />
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-col items-stretch justify-center rounded-lg overflow-hidden bg-black bg-opacity-90 w-full">
-      {sessions.map((session) => (
-        <Link
-          href={`/play/${session.id}`}
-          key={session.id}
-          className="hover:bg-zinc-900 p-3 text-center"
-        >
-          {`${session.games.map((game) => game.name).join(", ")} - ${moment
-            .unix(session.launch_time)
-            .fromNow()}`}
-        </Link>
-      ))}
+    <div className="flex flex-col items-center justify-center rounded-lg bg-black bg-opacity-90 w-full p-8 text-xl">
+      {notice}
     </div>
   );
 }

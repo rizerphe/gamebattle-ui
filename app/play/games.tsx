@@ -1,58 +1,40 @@
 "use client";
 import { auth } from "../firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
-import { useEffect, useState, useRef } from "react";
-import { z } from "zod";
-import GameContainer from "./game_container";
+import { useQuery } from "@tanstack/react-query";
+import { useState, useRef } from "react";
+import GameContainer from "./game-container";
 import Game from "./game";
-import GameTooling from "./game_tooling";
+import SessionGameTooling from "./game-tooling";
+import { sessionSchema } from "@/lib/api";
+import { apiGet } from "@/lib/fetch";
 
-const Session = z.object({
-  launch_time: z.number(),
-  games: z.array(
-    z.object({
-      name: z.string(),
-      over: z.boolean(),
-    })
-  ),
-});
-
-type Session = z.infer<typeof Session>;
+export function useSession(session_id: string) {
+  const [user] = useAuthState(auth);
+  return useQuery({
+    queryKey: ["session", session_id],
+    enabled: !!user,
+    queryFn: () =>
+      apiGet(user, `/sessions/${session_id}`, sessionSchema, "Could not load the session."),
+  });
+}
 
 function GameBox({
   name,
-  api_route,
-  api_ws_route,
   session_id,
   game,
   tooling,
-  gameOver,
-  setGameOver,
-  allGamesOver,
-  score,
-  setScore,
-  n_games,
-  gameRestarter,
-  setGameRestarter,
   isFullscreen,
   toggleFullscreen,
+  restartHref,
 }: {
   name: string;
-  api_route: string;
-  api_ws_route: string;
   session_id: string;
   game: number;
   tooling?: React.ReactNode;
-  gameOver: boolean;
-  setGameOver: (gameOver: boolean) => void;
-  allGamesOver: boolean;
-  score: number | null;
-  setScore: (score: number) => void;
-  n_games: number;
-  gameRestarter: number;
-  setGameRestarter: (gameRestarter: number) => void;
   isFullscreen: boolean;
   toggleFullscreen: () => void;
+  restartHref: string;
 }) {
   const ref = useRef<HTMLDivElement | null>(null);
   const [connected, setConnected] = useState<boolean>(false);
@@ -65,8 +47,8 @@ function GameBox({
         gameRunning ? "bg-black" : "bg-zinc-900"
       } bg-opacity-90 rounded-lg items-stretch`}
       style={{
-        maxWidth: `calc(${100 / (isFullscreen ? 1 : n_games)}% - ${
-          ((isFullscreen ? 1 : n_games) - 1) / 2
+        maxWidth: `calc(${100 / (isFullscreen ? 1 : 1)}% - ${
+          ((isFullscreen ? 1 : 1) - 1) / 2
         }rem`,
       }}
       onClick={() => ref.current?.focus?.()}
@@ -75,21 +57,12 @@ function GameBox({
         name={name}
         tooling={
           <>
-            <GameTooling
-              api_route={api_route}
-              session_id={session_id}
-              game_id={game}
+            <SessionGameTooling session_id={session_id}
               setGameRunning={setGameRunning}
-              gameOver={gameOver}
-              allGamesOver={allGamesOver}
-              score={score}
-              setScore={setScore}
               restarting={restarting}
               setRestarting={setRestarting}
-              n_games={n_games}
-              gameRestarter={gameRestarter}
-              setGameRestarter={setGameRestarter}
               toggleFullscreen={toggleFullscreen}
+              restartHref={restartHref}
             />
             {connected || !gameRunning ? null : (
               <span className="font-bold text-red-600">connecting...</span>
@@ -100,17 +73,12 @@ function GameBox({
         key={game}
       >
         <Game
-          api_route={api_ws_route}
-          session_id={session_id}
-          game={game}
+          key={session_id} session_id={session_id}
           setConnected={setConnected}
           inputRef={ref}
           gameRunning={gameRunning}
           setGameRunning={(running: boolean) => {
-            if (!restarting) {
-              setGameRunning(running);
-              if (!running) setGameOver(true);
-            }
+            if (!restarting) setGameRunning(running);
           }}
         />
       </GameContainer>
@@ -119,102 +87,37 @@ function GameBox({
 }
 
 export default function Games({
-  api_route,
-  api_ws_route,
   session_id,
   n_placeholder_games = 2,
   tooling,
   children,
+  restartHref = "/play/{id}",
 }: {
-  api_route: string;
-  api_ws_route: string;
   session_id: string;
   n_placeholder_games?: number;
   tooling?: React.ReactNode;
   children?: React.ReactNode;
+  restartHref?: string;
 }) {
-  const [user] = useAuthState(auth);
-  const [session, setSession] = useState<Session | null>(null);
-  const [gamesOver, setGamesOver] = useState<boolean[]>([]);
-  const [score, setScore] = useState<number | null>(null);
-  const [gameRestarter, setGameRestarter] = useState<number>(0);
-
+  const session = useSession(session_id).data;
   const [fullscreenGameId, setFullscreenGameId] = useState<number | null>(null);
-
-  useEffect(() => {
-    const getScore = async () => {
-      const token = await auth.currentUser?.getIdToken();
-      if (!token) return null;
-      const response = await fetch(
-        `${api_route}/sessions/${session_id}/preference`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      const data = await response.json();
-      setScore(data?.first_score);
-    };
-    getScore();
-  }, [session_id, user?.uid, gameRestarter]);
-
-  useEffect(() => {
-    if (!user) return;
-    const fetch_session = async () => {
-      setSession(null);
-      const response = await fetch(`${api_route}/sessions/${session_id}`, {
-        headers: {
-          Authorization: `Bearer ${await user.getIdToken()}`,
-        },
-      });
-      const json = await response.json();
-      const session = Session.parse(json);
-      setSession(session);
-      setGamesOver(session.games.map((game) => game.over));
-    };
-    fetch_session();
-  }, [user?.uid, api_route, session_id, gameRestarter]);
 
   return (
     <>
       {session ? (
         <>
-          {session.games.map(
-            ({ name }: { name: string; over: boolean }, game: number) =>
-              (fullscreenGameId == null || fullscreenGameId === game) && (
-                <GameBox
-                  key={game}
-                  name={name}
-                  api_route={api_route}
-                  api_ws_route={api_ws_route}
-                  session_id={session_id}
-                  game={game}
-                  tooling={tooling}
-                  allGamesOver={gamesOver.every((gameOver) => gameOver)}
-                  gameOver={gamesOver[game]}
-                  setGameOver={(gameOver: boolean) => {
-                    const newGamesOver = [...gamesOver];
-                    newGamesOver[game] = gameOver;
-                    setGamesOver(newGamesOver);
-                  }}
-                  score={score}
-                  setScore={setScore}
-                  n_games={session.games.length}
-                  gameRestarter={gameRestarter}
-                  setGameRestarter={setGameRestarter}
-                  isFullscreen={fullscreenGameId === game}
-                  toggleFullscreen={() => {
-                    if (fullscreenGameId === game) {
-                      setFullscreenGameId(null);
-                    } else {
-                      setFullscreenGameId(game);
-                    }
-                  }}
-                />
-              )
+          {(fullscreenGameId == null || fullscreenGameId === 0) && (
+            <GameBox
+              key={session_id}
+              name="Game" session_id={session_id}
+              game={0}
+              tooling={tooling}
+              isFullscreen={fullscreenGameId === 0}
+              toggleFullscreen={() =>
+                setFullscreenGameId(fullscreenGameId === 0 ? null : 0)
+              }
+              restartHref={restartHref}
+            />
           )}
         </>
       ) : (

@@ -1,5 +1,5 @@
 "use client";
-import GameContainer from "../../game_container";
+import GameContainer from "../../game-container";
 
 export default function PlaceholderGame({
   name,

@@ -7,14 +7,17 @@ import {
   signOut,
 } from "firebase/auth";
 
+function required(name: string, value: string | undefined): string {
+  if (!value) throw new Error(`Set ${name} (baked in at build time)`);
+  return value;
+}
+
+// Next only inlines NEXT_PUBLIC_* into the client bundle when accessed literally.
 const firebaseConfig = {
-  apiKey: "AIzaSyDYUUugxnC_y-Ks8aLzjoI7KX-_L0yiqqI",
-  authDomain: "gamebattle-eef0d.firebaseapp.com",
-  projectId: "gamebattle-eef0d",
-  storageBucket: "gamebattle-eef0d.appspot.com",
-  messagingSenderId: "396013676669",
-  appId: "1:396013676669:web:4d354664953fb625d82914",
-  measurementId: "G-TGHHLWBJ03",
+  apiKey: required("NEXT_PUBLIC_FIREBASE_API_KEY", process.env.NEXT_PUBLIC_FIREBASE_API_KEY),
+  authDomain: required("NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN", process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN),
+  projectId: required("NEXT_PUBLIC_FIREBASE_PROJECT_ID", process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID),
+  appId: required("NEXT_PUBLIC_FIREBASE_APP_ID", process.env.NEXT_PUBLIC_FIREBASE_APP_ID),
 };
 
 const app = initializeApp(firebaseConfig);

@@ -1,6 +1,6 @@
 "use client";
 import path from "path";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getMaterialFileIcon } from "file-extension-icon-js";
 import {
   VscChevronDown,
@@ -28,6 +28,7 @@ function File({
   delete_file,
   depth = 0,
   accept_into_self = false,
+  canEdit,
 }: {
   name: string;
   active: boolean;
@@ -38,11 +39,16 @@ function File({
   delete_file: () => void;
   depth?: number;
   accept_into_self?: boolean;
+  canEdit: boolean;
 }) {
   const [renaming, setRenaming] = useState(
     name.split("/").slice(-1)[0].length === 0
   );
   const [newName, setNewName] = useState(name.split("/").slice(-1)[0]);
+  const renameDone = useRef(false);
+  useEffect(() => {
+    if (renaming) renameDone.current = false;
+  }, [renaming]);
   useEffect(() => {
     setNewName(name.split("/").slice(-1)[0]);
     if (!renaming && name.split("/").slice(-1)[0].length === 0) {
@@ -52,6 +58,7 @@ function File({
   const [, drag] = useDrag(
     () => ({
       type: "file",
+      canDrag: canEdit,
       item: {
         move: (new_folder: string) => {
           rename_file(
@@ -62,7 +69,7 @@ function File({
         },
       },
     }),
-    [name]
+    [name, canEdit]
   );
   const [, drop] = useDrop(
     () => ({
@@ -79,6 +86,7 @@ function File({
     () => ({
       accept: [NativeTypes.FILE],
       drop(item: any) {
+        if (!canEdit) return;
         for (const file of item.files) {
           const parent = accept_into_self
             ? name
@@ -90,8 +98,25 @@ function File({
         }
       },
     }),
-    [name, save_file]
+    [name, save_file, canEdit]
   );
+
+  // Enter and clicking away both finish the rename.
+  const finishRename = () => {
+    if (renameDone.current) return;
+    renameDone.current = true;
+    setRenaming(false);
+    if (newName.length === 0) {
+      delete_file();
+      return;
+    }
+    const current = name.split("/").slice(-1)[0];
+    if (newName === current) return;
+    const parent_location = name.split("/").slice(0, -1).join("/");
+    rename_file(
+      parent_location ? path.join(parent_location, newName) : newName
+    );
+  };
 
   return (
     <div
@@ -101,7 +126,9 @@ function File({
       }`}
       style={{ paddingLeft: `${depth * 1.5 + 0.5}rem` }}
       onClick={() => on_file_open(name)}
-      onDoubleClick={() => setRenaming(true)}
+      onDoubleClick={() => {
+        if (canEdit) setRenaming(true);
+      }}
     >
       {icon || <img src={getMaterialFileIcon(name)} alt="" width="16" />}
       {renaming ? (
@@ -112,33 +139,21 @@ function File({
           onChange={(e) => setNewName(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
-              setRenaming(false);
-              if (newName.length === 0) {
-                delete_file();
-                return;
-              }
-              const parent_location = name.split("/").slice(0, -1).join("/");
-              rename_file(
-                parent_location ? path.join(parent_location, newName) : newName
-              );
+              finishRename();
             } else if (e.key === "Escape") {
+              renameDone.current = true;
               setRenaming(false);
               setNewName(name.split("/").slice(-1)[0]);
+              if (name.split("/").slice(-1)[0].length === 0) delete_file();
             }
           }}
-          onBlur={() => {
-            setRenaming(false);
-            if (newName.length === 0) {
-              delete_file();
-              return;
-            }
-          }}
+          onBlur={finishRename}
           autoFocus
         />
       ) : (
         <>
           <span>{name.split("/").slice(-1)[0]}</span>
-          <DeleteFileButton delete_file={delete_file} />
+          {canEdit ? <DeleteFileButton delete_file={delete_file} /> : null}
         </>
       )}
     </div>
@@ -171,6 +186,7 @@ function TreeContent({
   rename_folder,
   delete_file,
   depth = 0,
+  canEdit,
 }: {
   files: { path: string; content: string | null }[];
   location: string;
@@ -181,6 +197,7 @@ function TreeContent({
   rename_folder: (path: string, new_path: string) => void;
   delete_file: (path: string) => void;
   depth?: number;
+  canEdit: boolean;
 }) {
   const files_in_location = files.filter((file) =>
     file.path.startsWith(location.length ? location + "/" : "")
@@ -217,6 +234,7 @@ function TreeContent({
           rename_folder={rename_folder}
           delete_file={delete_file}
           depth={depth}
+          canEdit={canEdit}
         />
       ))}
       {files_in_root.map((file) => (
@@ -227,6 +245,7 @@ function TreeContent({
           on_file_open={on_file_open}
           depth={depth}
           save_file={save_file}
+          canEdit={canEdit}
           rename_file={(new_path: string) => {
             if (
               files.filter(
@@ -258,6 +277,7 @@ function Subtree({
   rename_folder,
   delete_file,
   depth = 0,
+  canEdit,
 }: {
   name: string;
   location: string;
@@ -269,6 +289,7 @@ function Subtree({
   rename_folder: (path: string, new_path: string) => void;
   delete_file: (path: string) => void;
   depth?: number;
+  canEdit: boolean;
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -290,6 +311,7 @@ function Subtree({
         }
         depth={depth}
         accept_into_self={true}
+        canEdit={canEdit}
       />
       {open && (
         <TreeContent
@@ -302,6 +324,7 @@ function Subtree({
           rename_folder={rename_folder}
           delete_file={delete_file}
           depth={depth + 1}
+          canEdit={canEdit}
         />
       )}
     </>
@@ -316,6 +339,7 @@ function FileBrowserContent({
   rename_file,
   rename_folder,
   delete_file,
+  canEdit,
 }: {
   files: { path: string; content: string | null }[];
   active_file?: string;
@@ -324,23 +348,26 @@ function FileBrowserContent({
   rename_file: (path: string, new_path: string) => void;
   rename_folder: (path: string, new_path: string) => void;
   delete_file: (path: string) => void;
+  canEdit: boolean;
 }) {
   const [, drop] = useDrop(() => ({
     accept: "file",
     drop: (item: ItemType) => {
+      if (!canEdit) return;
       item.move(null);
     },
-  }));
+  }), [canEdit]);
   const [, native_drop] = useDrop(() => ({
     accept: [NativeTypes.FILE],
     drop(item: any) {
+      if (!canEdit) return;
       for (const file of item.files) {
         file.text().then((text: string) => {
           save_file(file.name, text);
         });
       }
     },
-  }));
+  }), [canEdit, save_file]);
 
   return (
     <>
@@ -353,14 +380,19 @@ function FileBrowserContent({
         rename_file={rename_file}
         rename_folder={rename_folder}
         delete_file={delete_file}
+        canEdit={canEdit}
       />
-      <div
-        className="flex flex-col justify-center items-center flex-1 max-md:hidden"
-        ref={(node) => drop(native_drop(node))}
-      >
-        <VscCloudUpload className="text-6xl text-zinc-700" />
-        <span className="text-zinc-700">Drop files here to upload</span>
-      </div>
+      {canEdit ? (
+        <div
+          className="flex flex-col justify-center items-center flex-1 max-md:hidden"
+          ref={(node) => drop(native_drop(node))}
+        >
+          <VscCloudUpload className="text-6xl text-zinc-700" />
+          <span className="text-zinc-700">Drop files here to upload</span>
+        </div>
+      ) : (
+        <div className="flex-1" />
+      )}
     </>
   );
 }
@@ -371,26 +403,45 @@ export default function FileBrowser({
   on_file_open,
   save_file,
   delete_file,
+  canEdit,
 }: {
   files: { path: string; content: string }[];
   active_file?: string;
-  on_file_open: (path: string) => void;
-  save_file: (path: string, content: string) => void;
+  on_file_open: (path?: string) => void;
+  save_file: (path: string, content: string) => boolean | Promise<boolean>;
   delete_file: (path: string) => void;
+  canEdit: boolean;
 }) {
   const [created_folders, setCreatedFolders] = useState<string[]>([]);
+  const [created_files, setCreatedFiles] = useState<string[]>([]);
   const rename_file = (original: string, newName: string) => {
-    const file = files.find((file) => file.path === original);
+    const pending = created_files.includes(original);
+    const file =
+      files.find((file) => file.path === original) ??
+      (pending ? { path: original, content: "" } : undefined);
     const target_exists =
       files.find(
         (file) =>
           file.path === newName ||
           file.path.startsWith(newName + "/") ||
           newName.startsWith(file.path + "/")
-      ) || created_folders.includes(newName);
+      ) ||
+      created_folders.includes(newName) ||
+      created_files.includes(newName);
     if (!file || target_exists) return;
-    save_file(newName, file.content);
-    delete_file(original);
+    if (pending) {
+      setCreatedFiles(
+        created_files.map((path) => (path === original ? newName : path))
+      );
+    }
+    void Promise.resolve(save_file(newName, file.content)).then((saved) => {
+      if (!saved) return;
+      if (pending) {
+        setCreatedFiles((paths) => paths.filter((path) => path !== newName));
+        return;
+      }
+      delete_file(original);
+    });
   };
   const rename_folder = (original: string, newName: string) => {
     if (created_folders.includes(original)) {
@@ -419,13 +470,19 @@ export default function FileBrowser({
     if (created_folders.includes(path)) {
       setCreatedFolders(created_folders.filter((folder) => folder !== path));
     }
+    if (created_files.includes(path)) {
+      setCreatedFiles(created_files.filter((file) => file !== path));
+      // An abandoned new file has nothing on the server; close its tab.
+      if (active_file === path) on_file_open(undefined);
+    }
     const files_in_folder = files.filter((file) =>
       file.path.startsWith(path + "/")
     );
     files_in_folder.forEach((file) => {
       delete_file_full(file.path);
     });
-    if (files.find((file) => file.path === path)) {
+    // Also for a never-created file, so any unsaved buffer under its path goes.
+    if (files.find((file) => file.path === path) || created_files.includes(path)) {
       delete_file(path);
     }
   };
@@ -435,21 +492,29 @@ export default function FileBrowser({
       <div className="flex flex-row items-center gap-2 p-2 cursor-pointer bg-zinc-700">
         <span>Files</span>
         <div className="flex-grow" />
-        <VscNewFile
-          onClick={() => {
-            save_file("", "");
-            on_file_open("");
-          }}
-        />
-        <VscNewFolder
-          onClick={() => setCreatedFolders([...created_folders, ""])}
-        />
+        {canEdit ? (
+          <>
+            <VscNewFile
+              onClick={() => {
+                setCreatedFiles([...created_files, ""]);
+                on_file_open("");
+              }}
+            />
+            <VscNewFolder
+              onClick={() => setCreatedFolders([...created_folders, ""])}
+            />
+          </>
+        ) : null}
       </div>
       <FileBrowserContent
         files={(files as { path: string; content: string | null }[]).concat(
           created_folders.map((folder) => ({
             path: folder,
             content: null,
+          })),
+          created_files.map((file) => ({
+            path: file,
+            content: "",
           }))
         )}
         active_file={active_file}
@@ -458,6 +523,7 @@ export default function FileBrowser({
         rename_file={rename_file}
         rename_folder={rename_folder}
         delete_file={delete_file_full}
+        canEdit={canEdit}
       />
     </DndProvider>
   );

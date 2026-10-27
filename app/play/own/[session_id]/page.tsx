@@ -1,7 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import { Suspense } from "react";
 import Games from "../../games";
-import GamesPlaceholder from "../../games_placeholder";
+import GamesPlaceholder from "../../games-placeholder";
 import Tips from "./tips";
 
 function DevTooling() {
@@ -14,16 +16,11 @@ function DevTooling() {
   );
 }
 
-export default function Play({
+export default function PlayOwnSessionPage({
   params: { session_id },
 }: {
   params: { session_id: string };
 }) {
-  const api_route = process.env.API_ROUTE;
-  const api_ws_route = process.env.API_WS_ROUTE;
-  if (!api_route) return <span>API_ROUTE not set</span>;
-  if (!api_ws_route) return <span>API_WS_ROUTE not set</span>;
-
   return (
     <div className="flex flex-col items-stretch flex-1 gap-4 w-full">
       <div className="flex flex-row flex-1 gap-4">
@@ -36,11 +33,10 @@ export default function Play({
           }
         >
           <Games
-            api_route={api_route}
-            api_ws_route={api_ws_route}
             session_id={session_id}
             n_placeholder_games={1}
             tooling={<DevTooling />}
+            restartHref="/play/own/{id}"
           >
             <Tips />
           </Games>

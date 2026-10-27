@@ -1,9 +1,9 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import NavBar from "./navbar";
-import Providers from "./providers";
-import InteractiveDotBackground from "./background";
+import NavBar from "@/components/navbar";
+import Providers from "@/components/providers";
+import InteractiveDotBackground from "@/components/background";
 import { Toaster } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
 
@@ -29,7 +29,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={cn(inter.className, "dark")}>
+      <body className={cn(inter.className, "bg-black dark")}>
         <div className="relative flex flex-col items-stretch min-h-screen h-fit">
           <div className="fixed object-cover inset-0 z-[-1]">
             <InteractiveDotBackground />

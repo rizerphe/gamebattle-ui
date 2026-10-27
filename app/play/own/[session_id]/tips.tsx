@@ -16,9 +16,9 @@ This isn't just for show - during the competition, players will be running two g
 
 ### File limitations
 To keep the platform running, we have some limitations to what you can do with your files:
-- Each file can be up to 128KB
+- Each file can be up to 1MB
 - There can be up to 64 files in your game
-- Filenames can only contain English letters, numbers, ".", "-", "_", and " ".
+- Filenames are ASCII only and cannot contain spaces
 
 ### Using Display Libraries?
 If you're using curses or similar tools:

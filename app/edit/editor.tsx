@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import Editor from "@monaco-editor/react";
 import { VscChromeClose, VscCircleFilled } from "react-icons/vsc";
 import Modal from "react-modal";
@@ -13,18 +13,28 @@ function CodeEditor({
   setCode,
   filename,
   save_file,
+  canEdit,
 }: {
   code: string;
   setCode: (code: string) => void;
   filename: string;
   save_file: () => void;
+  canEdit: boolean;
 }) {
   return (
     <Editor
       path={filename}
       theme="vs-dark"
       value={code}
-      onChange={(code) => setCode(code || "")}
+      options={{
+        automaticLayout: true,
+        readOnly: !canEdit,
+        domReadOnly: !canEdit,
+      }}
+      onChange={(code) => {
+        if (!canEdit) return;
+        setCode(code || "");
+      }}
       className="h-full w-full"
       wrapperProps={{
         onKeyDown: (e: any) => {
@@ -89,18 +99,23 @@ function EditorTab({
   );
 }
 
+type BufferEdit = { path: string; content: string };
+type SetBuffers = Dispatch<SetStateAction<BufferEdit[]>>;
+
 function EditorTabs({
   modified_files,
   setModifiedFiles,
   open_file,
   on_file_open,
   save_file,
+  canEdit,
 }: {
-  modified_files: { path: string; content: string }[];
-  setModifiedFiles: (files: { path: string; content: string }[]) => void;
+  modified_files: BufferEdit[];
+  setModifiedFiles: SetBuffers;
   open_file: string | undefined;
   on_file_open: (path?: string) => void;
   save_file: (path: string, content: string) => void;
+  canEdit: boolean;
 }) {
   const modified_files_with_open_file =
     modified_files.find((file) => file.path === open_file) ||
@@ -111,7 +126,7 @@ function EditorTabs({
   const [confirmation_file, setConfirmationFile] = useState<string>("");
 
   return (
-    <div className="flex flex-row items-stretch bg-zinc-950">
+    <div className="flex shrink-0 flex-row items-stretch bg-zinc-950">
       {modified_files_with_open_file.map((file) => (
         <EditorTab
           key={file}
@@ -126,13 +141,14 @@ function EditorTabs({
       <div className="flex-grow"></div>
       <div className="flex flex-row gap-0 overflow-hidden">
         <button
+          disabled={!canEdit}
           className={`text-white font-bold py-2 px-4 rounded ${
-            modified_files.find((f) => f.path === open_file)
+            canEdit && modified_files.find((f) => f.path === open_file)
               ? "bg-green-700 hover:bg-green-600"
               : "bg-zinc-700"
           }`}
           onClick={() => {
-            if (!open_file) return;
+            if (!canEdit || open_file === undefined) return;
             const current_file = modified_files.find(
               (f) => f.path === open_file
             );
@@ -217,13 +233,18 @@ function EditorTabs({
 
 function UploadPlaceholder({
   save_file,
+  canEdit,
+  idleMessage,
 }: {
   save_file: (path: string, content: string) => void;
+  canEdit: boolean;
+  idleMessage?: string;
 }) {
   const [, native_drop] = useDrop(
     () => ({
       accept: [NativeTypes.FILE],
       drop(item: any) {
+        if (!canEdit) return;
         for (const file of item.files) {
           file.text().then((text: string) => {
             save_file(file.name, text);
@@ -231,7 +252,7 @@ function UploadPlaceholder({
         }
       },
     }),
-    [save_file]
+    [save_file, canEdit]
   );
 
   return (
@@ -240,10 +261,13 @@ function UploadPlaceholder({
       ref={native_drop}
     >
       <span className="text-2xl font-bold text-zinc-50">No file selected</span>
-      <VscCloudUpload className="text-6xl text-zinc-50" />
+      {canEdit ? <VscCloudUpload className="text-6xl text-zinc-50" /> : null}
       <span className="text-xl text-zinc-50">
-        Drag and drop a file to upload, or
+        {canEdit
+          ? "Drag and drop a file to upload, or"
+          : idleMessage ?? "Editing is closed."}
       </span>
+      {canEdit ? (
       <button
         className="bg-zinc-700 hover:bg-zinc-600 text-white font-bold py-2 px-4 rounded"
         onClick={() => {
@@ -261,6 +285,7 @@ function UploadPlaceholder({
       >
         Select a file
       </button>
+      ) : null}
     </div>
   );
 }
@@ -272,84 +297,109 @@ export default function FileEditor({
   save_file,
   modified_files,
   setModifiedFiles,
+  canEdit,
+  idleMessage,
 }: {
-  files: { path: string; content: string }[];
+  files: { path: string; content: string; saved_content: string | null }[];
   active_file?: string;
   setActiveFile: (path?: string) => void;
   save_file: (path: string, content: string) => void;
-  modified_files: { path: string; content: string }[];
-  setModifiedFiles: (files: { path: string; content: string }[]) => void;
+  modified_files: BufferEdit[];
+  setModifiedFiles: SetBuffers;
+  canEdit: boolean;
+  idleMessage?: string;
 }) {
+  const filesRef = useRef(files);
+  filesRef.current = files;
+  const modifiedRef = useRef(modified_files);
+  modifiedRef.current = modified_files;
   const [open_file, setOpenFile] = useState<string | undefined>(active_file);
   const [open_file_content, setOpenFileContent] = useState<string | undefined>(
     files.find((file) => file.path === active_file)?.content
   );
 
   useEffect(() => {
-    const after_mod_content = modified_files.find(
-      (file) => file.path === active_file
-    )?.content;
-    setOpenFileContent(
-      after_mod_content ||
-        files.find((file) => file.path === active_file)?.content
-    );
     setOpenFile(active_file);
-  }, [active_file, files]);
-
-  useEffect(() => {
-    const original_file = files.find((file) => file.path === open_file);
-    if (original_file && open_file_content !== original_file.content) {
-      setModifiedFiles(
-        modified_files.find((file) => file.path === open_file)
-          ? [
-              ...modified_files.map((file) =>
-                file.path === open_file
-                  ? { path: open_file, content: open_file_content || "" }
-                  : file
-              ),
-            ]
-          : [
-              ...modified_files,
-              { path: open_file || "", content: open_file_content || "" },
-            ]
-      );
-    } else {
-      setModifiedFiles(
-        modified_files.filter((file) => file.path !== open_file)
-      );
+    if (active_file === undefined) {
+      setOpenFileContent(undefined);
+      return;
     }
-  }, [open_file_content]);
+    const local = modifiedRef.current.find((file) => file.path === active_file);
+    if (local) {
+      setOpenFileContent(local.content);
+      return;
+    }
+    setOpenFileContent(
+      filesRef.current.find((file) => file.path === active_file)?.content ?? ""
+    );
+  }, [active_file]);
+
+  const savedNow =
+    open_file !== undefined
+      ? files.find((file) => file.path === open_file)?.saved_content
+      : undefined;
+  useEffect(() => {
+    if (!canEdit || open_file === undefined || open_file_content === undefined) {
+      return;
+    }
+    const original = filesRef.current.find((file) => file.path === open_file);
+    if (!original && open_file !== "") return;
+    const saved = original?.saved_content ?? "";
+    setModifiedFiles((current) => {
+      if (open_file_content !== saved) {
+        const existing = current.find((file) => file.path === open_file);
+        if (existing?.content === open_file_content) return current;
+        const next = { path: open_file, content: open_file_content };
+        return existing
+          ? current.map((file) => (file.path === open_file ? next : file))
+          : [...current, next];
+      }
+      if (!current.some((file) => file.path === open_file)) return current;
+      return current.filter((file) => file.path !== open_file);
+    });
+  }, [canEdit, open_file, open_file_content, savedNow, setModifiedFiles]);
 
   return (
-    <>
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <EditorTabs
         modified_files={modified_files}
-        setModifiedFiles={(files) => setModifiedFiles(files)}
+        setModifiedFiles={setModifiedFiles}
         open_file={open_file}
         on_file_open={(path) => setActiveFile(path)}
         save_file={(path, content) => save_file(path, content)}
+        canEdit={canEdit}
       />
-      {open_file ? (
-        <CodeEditor
-          code={open_file_content || ""}
-          setCode={(value) => setOpenFileContent(value)}
-          filename={open_file || ""}
-          save_file={() => {
-            if (!open_file) return;
-            save_file(
-              open_file,
-              modified_files.find((f) => f.path === open_file)?.content || ""
-            );
-            setModifiedFiles(
-              modified_files.filter((f) => f.path !== open_file)
-            );
-          }}
-        />
+      {open_file !== undefined ? (
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <CodeEditor
+            code={open_file_content || ""}
+            setCode={(value) => {
+              if (!canEdit) return;
+              setOpenFileContent(value);
+            }}
+            filename={open_file || ""}
+            canEdit={canEdit}
+            save_file={() => {
+              if (!canEdit || open_file === undefined) return;
+              save_file(
+                open_file,
+                modified_files.find((f) => f.path === open_file)?.content || ""
+              );
+              setModifiedFiles(
+                modified_files.filter((f) => f.path !== open_file)
+              );
+            }}
+          />
+        </div>
       ) : (
         <DndProvider backend={HTML5Backend}>
-          <UploadPlaceholder save_file={save_file} />
+          <UploadPlaceholder
+            save_file={save_file}
+            canEdit={canEdit}
+            idleMessage={idleMessage}
+          />
         </DndProvider>
       )}
-    </>
+    </div>
   );
 }

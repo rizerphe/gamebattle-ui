@@ -1,11 +1,13 @@
+"use client";
+
 import Link from "next/link";
 import { Suspense } from "react";
 import Games from "../../../games";
-import GamesPlaceholder from "../../../games_placeholder";
+import GamesPlaceholder from "../../../games-placeholder";
 
-function DevTooling({ return_id }: { return_id: string }) {
+function DevTooling({ returnTo }: { returnTo: string }) {
   return (
-    <Link href={`/edit/${return_id}`}>
+    <Link href={returnTo}>
       <div className="flex-1 p-2 font-bold text-white text-sm bg-blue-500 rounded cursor-pointer hover:bg-blue-600">
         Return to development
       </div>
@@ -13,33 +15,27 @@ function DevTooling({ return_id }: { return_id: string }) {
   );
 }
 
-export default function Play({
+export default function PlayOwnReturnPage({
   params: { session_id, return_id },
+  searchParams,
 }: {
   params: { session_id: string; return_id: string };
+  searchParams: { to?: string };
 }) {
-  const api_route = process.env.API_ROUTE;
-  const api_ws_route = process.env.API_WS_ROUTE;
-  if (!api_route) return <span>API_ROUTE not set</span>;
-  if (!api_ws_route) return <span>API_WS_ROUTE not set</span>;
+  const returnTo = searchParams.to ?? `/edit/${return_id}`;
+  const tooling = <DevTooling returnTo={returnTo} />;
 
   return (
     <div className="flex flex-col items-stretch flex-1 gap-4 w-full">
       <div className="flex flex-row flex-1 gap-4">
         <Suspense
-          fallback={
-            <GamesPlaceholder
-              n_games={1}
-              tooling={<DevTooling return_id={return_id} />}
-            />
-          }
+          fallback={<GamesPlaceholder n_games={1} tooling={tooling} />}
         >
           <Games
-            api_route={api_route}
-            api_ws_route={api_ws_route}
             session_id={session_id}
             n_placeholder_games={1}
-            tooling={<DevTooling return_id={return_id} />}
+            tooling={tooling}
+            restartHref={`/play/own/{id}/${return_id}?to=${encodeURIComponent(returnTo)}`}
           />
         </Suspense>
       </div>
