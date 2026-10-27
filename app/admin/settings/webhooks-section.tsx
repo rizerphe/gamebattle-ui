@@ -20,6 +20,7 @@ import { auth } from "../../firebase";
 type Draft = { event: Webhook["event"]; threshold: number | null };
 
 const EVENTS: { event: Webhook["event"]; label: string }[] = [
+  { event: "every_report", label: "Every report" },
   { event: "first_report", label: "First report" },
   { event: "threshold", label: "N reports reached" },
   { event: "removed", label: "Game automatically removed" },
