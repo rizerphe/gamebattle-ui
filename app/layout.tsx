@@ -35,8 +35,8 @@ export default function RootLayout({
           <div className="fixed object-cover inset-0 z-[-1]">
             <InteractiveDotBackground />
           </div>
-          <NavBar />
           <Providers>
+            <NavBar />
             <AccessWarning />
             <Content>{children}</Content>
             <Toaster />
