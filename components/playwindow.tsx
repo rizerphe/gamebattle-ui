@@ -1,13 +1,13 @@
 "use client";
 import Link from "next/link";
-import { auth, login } from "@/app/firebase";
+import { auth, login, logout } from "@/app/firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 import Button from "@/components/app-button";
 import CodeSummary from "@/components/code-summary";
 import CompetitionInfo from "@/components/home-stats";
 import { canCompare } from "@/lib/phase";
 import { Countdown, nextStart } from "@/components/countdown";
-import { usePhase } from "@/components/permissions";
+import { usePhase, usePlayer } from "@/components/permissions";
 
 const compact = "px-5 py-4 text-lg";
 
@@ -51,6 +51,7 @@ function Action({
 export default function PlayWindow() {
   const [user, loading] = useAuthState(auth);
   const state = usePhase().data;
+  const player = usePlayer().data;
 
   if (state?.phase === "preparation") {
     return <Countdown at={nextStart(state)} />;
@@ -66,6 +67,20 @@ export default function PlayWindow() {
         <p className="text-center text-base text-zinc-500">
           Use your school email to log in.
         </p>
+      </Box>
+    );
+  }
+
+  if (player && !player.allowed) {
+    return (
+      <Box>
+        <p role="alert" className="text-center text-lg text-red-300">
+          Your account does not have access to this service. Sign in with a
+          different account, or ask an admin to add you.
+        </p>
+        <Button className={compact} onClick={() => logout()}>
+          Log Out
+        </Button>
       </Box>
     );
   }

@@ -182,6 +182,11 @@ export default function Builder({
             onChange={(e) => setDraftName(e.target.value)}
           />
         </div>
+        {!isLoading && candidates.length === 0 ? (
+          <span className="text-zinc-400 text-sm">
+            No game files yet. Create or upload a Python file to get started.
+          </span>
+        ) : (
         <div className="flex flex-row items-center gap-2 justify-between">
           <span>Entrypoint:</span>
           <Select
@@ -226,6 +231,7 @@ export default function Builder({
             noOptionsMessage={() => "Create a Python file first."}
           />
         </div>
+        )}
         {files.find(
           (file) => file.path.endsWith(".py") && file.path.includes(" ")
         ) && (
