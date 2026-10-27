@@ -176,6 +176,7 @@ export const adminStudentSchema = z.object({
   comparisons_made: z.number(),
   reports_filed: z.number(),
   reports_received: z.number(),
+  admin: z.boolean().optional().default(false),
 });
 
 export const adminStudentsSchema = z.array(adminStudentSchema);
@@ -191,6 +192,7 @@ export const leaderboardSchema = z.array(leaderboardEntrySchema);
 export const playerSchema = z.object({
   id: z.string(),
   admin: z.boolean(),
+  allowed: z.boolean().optional().default(true),
 });
 
 export const studentSchema = z.object({

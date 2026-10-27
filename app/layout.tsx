@@ -4,6 +4,7 @@ import { Inter } from "next/font/google";
 import NavBar from "@/components/navbar";
 import Providers from "@/components/providers";
 import InteractiveDotBackground from "@/components/background";
+import AccessWarning from "@/components/access-warning";
 import { Toaster } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
 
@@ -36,6 +37,7 @@ export default function RootLayout({
           </div>
           <NavBar />
           <Providers>
+            <AccessWarning />
             <Content>{children}</Content>
             <Toaster />
           </Providers>

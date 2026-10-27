@@ -288,13 +288,18 @@ export default function StudentsPage() {
                     )} hover:bg-zinc-900/80`}
                   >
                     <td className="px-8 py-4">
-                      <Link href={base}>
+                      <Link href={base} className="flex items-center gap-2">
                         <StudentChip
                           id={row.id}
                           profile={chipProfile(row)}
                           gameName={row.game_name}
                           size="lg"
                         />
+                        {row.admin ? (
+                          <span className="shrink-0 rounded border border-green-700 bg-green-950 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-green-300">
+                            Admin
+                          </span>
+                        ) : null}
                       </Link>
                     </td>
                     <td className="px-8 py-4 text-base text-zinc-300">
