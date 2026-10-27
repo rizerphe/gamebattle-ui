@@ -139,7 +139,11 @@ function ReportModal({
 }: {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (shortReason: "unclear" | "buggy" | "other", reason: string) => void;
+  onConfirm: (
+    shortReason: "unclear" | "buggy" | "other",
+    reason: string,
+    keepPlaying: boolean,
+  ) => void;
   reporting: boolean;
   replaceCopy: boolean;
 }) {
@@ -177,8 +181,8 @@ function ReportModal({
         <span className="text-xl font-bold text-center">Report a game</span>
         <span className="text-center">
           {replaceCopy
-            ? "Reporting replaces this game with another. Organizers can replay the session and read what you write here."
-            : "Reporting ends this session. Organizers can replay it and read what you write here."}
+            ? "You can swap this game for another one, or keep playing it. Organizers can replay the session and read what you write here."
+            : "You can leave this session, or keep playing it. Organizers can replay it and read what you write here."}
         </span>
         {(["unclear", "buggy", "other"] as const).map((value) => (
           <div key={value} className="flex flex-row items-center gap-2">
@@ -220,14 +224,29 @@ function ReportModal({
           </button>
           <button
             type="button"
+            className="bg-zinc-900 hover:bg-zinc-800 text-white font-bold py-2 px-4 flex-1 border-zinc-800 border-2 disabled:opacity-50"
+            disabled={reporting}
+            onClick={(e) => {
+              e.stopPropagation();
+              onConfirm(shortReason, reason, true);
+            }}
+          >
+            {reporting ? "Reporting..." : "Report and keep playing"}
+          </button>
+          <button
+            type="button"
             className="bg-green-900 hover:bg-green-800 text-white font-bold py-2 px-4 flex-1 border-green-800 border-2 disabled:opacity-50"
             disabled={reporting}
             onClick={(e) => {
               e.stopPropagation();
-              onConfirm(shortReason, reason);
+              onConfirm(shortReason, reason, false);
             }}
           >
-            {reporting ? "Reporting..." : replaceCopy ? "Report" : "Report and leave"}
+            {reporting
+              ? "Reporting..."
+              : replaceCopy
+                ? "Report and replace"
+                : "Report and leave"}
           </button>
         </div>
       </div>
@@ -333,6 +352,7 @@ export function ComparisonSideTooling({
   const reportGame = async (
     shortReason: "unclear" | "buggy" | "other",
     reason: string,
+    keepPlaying: boolean,
   ) => {
     if (!user) {
       toast("Sign in to report this game");
@@ -348,7 +368,11 @@ export function ComparisonSideTooling({
             "Content-Type": "application/json",
             Authorization: `Bearer ${await user.getIdToken()}`,
           },
-          body: JSON.stringify({ short_reason: shortReason, reason }),
+          body: JSON.stringify({
+            short_reason: shortReason,
+            reason,
+            keep_playing: keepPlaying,
+          }),
         },
       );
       if (!response.ok) {
@@ -356,8 +380,14 @@ export function ComparisonSideTooling({
         setReporting(false);
         return;
       }
-      onComparison(comparisonSchema.parse(await response.json()));
+      const updated = comparisonSchema.parse(await response.json());
+      onComparison(updated);
       setReportOpen(false);
+      if (keepPlaying) {
+        toast("Report sent");
+      } else if (updated.sessions[side].at(-1) === session_id) {
+        toast("Report sent. No other game is available, so you can keep playing this one.");
+      }
     } catch (error) {
       console.error(error);
       toast("Could not file the report");
@@ -399,7 +429,9 @@ export function ComparisonSideTooling({
       <ReportModal
         isOpen={reportOpen}
         onClose={() => setReportOpen(false)}
-        onConfirm={(shortReason, reason) => void reportGame(shortReason, reason)}
+        onConfirm={(shortReason, reason, keepPlaying) =>
+          void reportGame(shortReason, reason, keepPlaying)
+        }
         reporting={reporting}
         replaceCopy
       />
@@ -464,6 +496,7 @@ export default function SessionGameTooling({
   const reportGame = async (
     shortReason: "unclear" | "buggy" | "other",
     reason: string,
+    keepPlaying: boolean,
   ) => {
     if (!user) {
       toast("Sign in to report this game");
@@ -479,11 +512,21 @@ export default function SessionGameTooling({
             "Content-Type": "application/json",
             Authorization: `Bearer ${await user.getIdToken()}`,
           },
-          body: JSON.stringify({ short_reason: shortReason, reason }),
+          body: JSON.stringify({
+            short_reason: shortReason,
+            reason,
+            keep_playing: keepPlaying,
+          }),
         },
       );
       if (!response.ok) {
         toast(await failureDetail(response, "Could not file the report"));
+        setReporting(false);
+        return;
+      }
+      if (keepPlaying) {
+        toast("Report sent");
+        setReportOpen(false);
         setReporting(false);
         return;
       }
@@ -503,7 +546,9 @@ export default function SessionGameTooling({
       <ReportModal
         isOpen={reportOpen}
         onClose={() => setReportOpen(false)}
-        onConfirm={(shortReason, reason) => void reportGame(shortReason, reason)}
+        onConfirm={(shortReason, reason, keepPlaying) =>
+          void reportGame(shortReason, reason, keepPlaying)
+        }
         reporting={reporting}
         replaceCopy={false}
       />

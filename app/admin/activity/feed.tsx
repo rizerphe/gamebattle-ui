@@ -59,7 +59,7 @@ function mergeActivity(
     ...reports.map((report) => ({
       kind: "report" as const,
       at: report.timestamp,
-      key: `report-${report.session.id}`,
+      key: `report-${report.id}`,
       report,
     })),
     ...sessions.map((session) => ({
@@ -285,7 +285,7 @@ function ReportActivityCard({
         />
         <ReasonBadge reason={report.short_reason} />
         <Link
-          href={`/admin/students/${gameId}/reports?report=${report.session.id}`}
+          href={`/admin/students/${gameId}/reports?report=${report.id}`}
           className="text-xs text-green-300 hover:underline"
         >
           Open

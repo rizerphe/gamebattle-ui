@@ -126,6 +126,7 @@ export const terminalEventsSchema = z.array(terminalEventSchema);
 export const reportReasonSchema = z.enum(["unclear", "buggy", "other"]);
 
 export const reportSchema = z.object({
+  id: z.string(),
   session: sessionSchema,
   short_reason: reportReasonSchema,
   reason: z.string(),

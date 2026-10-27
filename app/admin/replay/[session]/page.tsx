@@ -9,7 +9,7 @@ import { auth } from "@/app/firebase";
 import {
   REPORT_REASON_LABELS,
   gameSchema,
-  reportSchema,
+  reportsSchema,
   sessionSchema,
 } from "@/lib/api";
 import { UUID } from "@/lib/ids";
@@ -56,13 +56,13 @@ export default function ReplayPage({
       apiGet(user, `/games/${session!.game}`, gameSchema, "Could not load the game", 404),
   });
 
-  const reportQuery = useQuery({
-    queryKey: ["replay-report", sessionId, user?.uid],
+  const reportsQuery = useQuery({
+    queryKey: ["replay-reports", sessionId, user?.uid],
     enabled: !!user && !!session,
     queryFn: () =>
-      apiGet(user, `/sessions/${sessionId}/report`, reportSchema, "Could not load the report", 404),
+      apiGet(user, `/sessions/${sessionId}/reports`, reportsSchema, "Could not load the reports", 404),
   });
-  const report = reportQuery.data;
+  const reports = reportsQuery.data ?? [];
 
   const playerIds = useMemo(() => (session ? [session.player] : []), [session]);
   const playerProfiles = useAuthorProfiles(playerIds);
@@ -72,8 +72,6 @@ export default function ReplayPage({
   }
   if (sessionQuery.error) return <ReplayFrame message={sessionQuery.error.message} />;
   if (!session) return <ReplayFrame message="Loading session…" />;
-
-  const reportedAt = report ? Math.max(0, report.timestamp - session.started_at) : null;
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col gap-4">
@@ -102,11 +100,10 @@ export default function ReplayPage({
         key={session.id}
         sessionId={session.id}
         startedAt={session.started_at}
-        markers={
-          report && reportedAt !== null
-            ? [{ t: reportedAt, label: `Reported · ${REPORT_REASON_LABELS[report.short_reason]}` }]
-            : []
-        }
+        markers={reports.map((report) => ({
+          t: Math.max(0, report.timestamp - session.started_at),
+          label: `Reported · ${REPORT_REASON_LABELS[report.short_reason]}`,
+        }))}
       />
     </div>
   );

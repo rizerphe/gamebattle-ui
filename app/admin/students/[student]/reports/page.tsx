@@ -72,16 +72,16 @@ function ReportsContent() {
   );
 
   const activeId =
-    (selectedId && ordered.some((row) => row.session.id === selectedId)
+    (selectedId && ordered.some((row) => row.id === selectedId)
       ? selectedId
       : null) ??
-    (deepLink && ordered.some((row) => row.session.id === deepLink)
+    (deepLink && ordered.some((row) => row.id === deepLink)
       ? deepLink
       : null) ??
-    ordered[0]?.session.id ??
+    ordered[0]?.id ??
     null;
 
-  const report = ordered.find((row) => row.session.id === activeId);
+  const report = ordered.find((row) => row.id === activeId);
   const writtenReason = report?.reason?.trim() ?? "";
 
   return (
@@ -100,12 +100,12 @@ function ReportsContent() {
             <aside className="flex max-h-[30vh] min-h-0 flex-col gap-2 overflow-y-auto overscroll-contain bg-black p-2 lg:max-h-none">
               <nav aria-label="Reports for this game" className="min-h-0 flex-1">
                 {ordered.map((item) => {
-                  const active = item.session.id === activeId;
+                  const active = item.id === activeId;
                   return (
                     <button
-                      key={item.session.id}
+                      key={item.id}
                       type="button"
-                      onClick={() => setSelectedId(item.session.id)}
+                      onClick={() => setSelectedId(item.id)}
                       className={`mb-1 block w-full rounded-md px-2 py-1.5 text-left ${
                         active ? "bg-zinc-900" : "hover:bg-zinc-900/80"
                       }`}
@@ -136,7 +136,7 @@ function ReportsContent() {
                       : ""
                   }`}
                 >
-                  <ReportPlayback report={report} />
+                  <ReportPlayback key={report.id} report={report} />
                   {writtenReason ? (
                     <section className="flex min-h-0 flex-col overflow-hidden bg-black p-3">
                       <label
