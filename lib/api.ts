@@ -164,6 +164,19 @@ export const phaseStateSchema = z.object({
   }),
 });
 
+/** Reports on one publication that take a game down. Mirrors the server's limit. */
+export const REPORTS_BEFORE_REMOVAL = 5;
+
+export const webhookSchema = z.object({
+  id: z.string(),
+  url: z.string(),
+  thresholds: z.array(z.number()),
+  on_removed: z.boolean(),
+  created_at: z.number(),
+});
+
+export const webhooksSchema = z.array(webhookSchema);
+
 export const gameSchema = z.object({
   id: z.string(),
   name: z.string().nullable(),
@@ -262,6 +275,7 @@ export type Report = z.infer<typeof reportSchema>;
 export type Ticket = z.infer<typeof ticketSchema>;
 export type PhaseName = z.infer<typeof phaseNameSchema>;
 export type PhaseState = z.infer<typeof phaseStateSchema>;
+export type Webhook = z.infer<typeof webhookSchema>;
 export type Game = z.infer<typeof gameSchema>;
 export type AdminStudent = z.infer<typeof adminStudentSchema>;
 export type LeaderboardEntry = z.infer<typeof leaderboardEntrySchema>;

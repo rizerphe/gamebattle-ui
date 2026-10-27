@@ -109,7 +109,7 @@ function PhaseRow({
   );
 }
 
-export default function PhasesPage() {
+export default function PhasesSection() {
   const [user] = useAuthState(auth);
   const queryClient = useQueryClient();
   const query = usePhase();
@@ -135,7 +135,11 @@ export default function PhasesPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-8 py-10">
+    <section>
+      <h2 className="text-xl font-bold text-zinc-100">Game phases</h2>
+      <p className="mt-1 text-sm text-zinc-500">
+        When each phase of the competition begins.
+      </p>
       <AdminGate
         loading={query.isPending}
         loadingMessage="Loading phases…"
@@ -162,6 +166,6 @@ export default function PhasesPage() {
           </ol>
         ) : null}
       </AdminGate>
-    </div>
+    </section>
   );
 }

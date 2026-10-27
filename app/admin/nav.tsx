@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import AdminTabs from "@/components/admin-tabs";
 
 const GLOBAL_ADMIN_TABS = [
-  { href: "/admin/phases", label: "Phases" },
+  { href: "/admin/settings", label: "Settings" },
   { href: "/admin/students", label: "Students" },
   { href: "/admin/activity", label: "Activity" },
   { href: "/admin/submissions", label: "Submissions" },
