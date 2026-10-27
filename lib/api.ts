@@ -170,7 +170,9 @@ export const REPORTS_BEFORE_REMOVAL = 5;
 export const webhookSchema = z.object({
   id: z.string(),
   url: z.string(),
-  thresholds: z.array(z.number()),
+  on_first_report: z.boolean(),
+  /** Report count that triggers a message; null when off. */
+  threshold: z.number().nullable(),
   on_removed: z.boolean(),
   created_at: z.number(),
 });

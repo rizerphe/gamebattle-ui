@@ -17,9 +17,14 @@ import {
 } from "@/lib/api";
 import { auth } from "../../firebase";
 
-const COUNTS = Array.from({ length: REPORTS_BEFORE_REMOVAL }, (_, i) => i + 1);
+type Draft = {
+  on_first_report: boolean;
+  threshold: number | null;
+  on_removed: boolean;
+};
 
-type Draft = { thresholds: number[]; on_removed: boolean };
+/** The threshold a newly ticked "reports reached" box starts at. */
+const DEFAULT_THRESHOLD = 3;
 
 /** Webhook URLs carry a secret token, so only the host is shown. */
 function hostOf(url: string): string {
@@ -28,6 +33,14 @@ function hostOf(url: string): string {
   } catch {
     return "invalid url";
   }
+}
+
+function sameDraft(a: Draft, b: Draft): boolean {
+  return (
+    a.on_first_report === b.on_first_report &&
+    a.threshold === b.threshold &&
+    a.on_removed === b.on_removed
+  );
 }
 
 function Triggers({
@@ -40,35 +53,19 @@ function Triggers({
   disabled?: boolean;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="text-xs text-zinc-500">Notify at reports:</span>
-      {COUNTS.map((count) => {
-        const on = value.thresholds.includes(count);
-        return (
-          <button
-            key={count}
-            type="button"
-            disabled={disabled}
-            aria-pressed={on}
-            onClick={() =>
-              onChange({
-                ...value,
-                thresholds: on
-                  ? value.thresholds.filter((item) => item !== count)
-                  : [...value.thresholds, count].sort((a, b) => a - b),
-              })
-            }
-            className={`h-7 w-7 rounded border text-xs ${
-              on
-                ? "border-green-500 bg-green-950 text-green-200"
-                : "border-zinc-700 text-zinc-400 hover:border-zinc-500"
-            }`}
-          >
-            {count}
-          </button>
-        );
-      })}
-      <label className="ml-2 flex items-center gap-2 text-sm text-zinc-300">
+    <div className="flex flex-col gap-2 text-sm text-zinc-300">
+      <label className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          disabled={disabled}
+          checked={value.on_first_report}
+          onChange={(event) =>
+            onChange({ ...value, on_first_report: event.target.checked })
+          }
+        />
+        First report
+      </label>
+      <label className="flex items-center gap-2">
         <input
           type="checkbox"
           disabled={disabled}
@@ -77,14 +74,55 @@ function Triggers({
             onChange({ ...value, on_removed: event.target.checked })
           }
         />
-        Game removed
+        Game automatically removed
+        <span className="text-xs text-zinc-500">
+          (at {REPORTS_BEFORE_REMOVAL} reports)
+        </span>
       </label>
+      <div className="flex items-center gap-2">
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            disabled={disabled}
+            checked={value.threshold !== null}
+            onChange={(event) =>
+              onChange({
+                ...value,
+                threshold: event.target.checked ? DEFAULT_THRESHOLD : null,
+              })
+            }
+          />
+          <span>
+            {value.threshold === null ? "N reports reached" : "reports reached"}
+          </span>
+        </label>
+        {value.threshold !== null ? (
+          <Input
+            type="number"
+            aria-label="Report count"
+            min={1}
+            max={REPORTS_BEFORE_REMOVAL}
+            disabled={disabled}
+            value={value.threshold}
+            onChange={(event) => {
+              const next = Math.round(Number(event.target.value));
+              if (Number.isFinite(next) && next >= 1) {
+                onChange({
+                  ...value,
+                  threshold: Math.min(next, REPORTS_BEFORE_REMOVAL),
+                });
+              }
+            }}
+            className="order-first h-8 w-16 bg-background"
+          />
+        ) : null}
+      </div>
     </div>
   );
 }
 
 function empty(draft: Draft): boolean {
-  return draft.thresholds.length === 0 && !draft.on_removed;
+  return !draft.on_first_report && !draft.on_removed && draft.threshold === null;
 }
 
 function WebhookRow({
@@ -100,13 +138,13 @@ function WebhookRow({
 }) {
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<{ text: string; bad: boolean } | null>(null);
-  const [draft, setDraft] = useState<Draft>({
-    thresholds: hook.thresholds,
+  const saved: Draft = {
+    on_first_report: hook.on_first_report,
+    threshold: hook.threshold,
     on_removed: hook.on_removed,
-  });
-  const changed =
-    draft.on_removed !== hook.on_removed ||
-    draft.thresholds.join() !== hook.thresholds.join();
+  };
+  const [draft, setDraft] = useState<Draft>(saved);
+  const changed = !sameDraft(draft, saved);
 
   async function run(work: () => Promise<void>, done?: string) {
     setBusy(true);
@@ -148,7 +186,7 @@ function WebhookRow({
           </Button>
           {empty(draft) ? (
             <span className="text-xs text-zinc-500">
-              Pick at least one trigger.
+              Pick at least one notification.
             </span>
           ) : null}
         </div>
@@ -169,7 +207,8 @@ function AddWebhook({
 }) {
   const [url, setUrl] = useState("");
   const [draft, setDraft] = useState<Draft>({
-    thresholds: [REPORTS_BEFORE_REMOVAL],
+    on_first_report: false,
+    threshold: null,
     on_removed: true,
   });
   const [busy, setBusy] = useState(false);
@@ -271,9 +310,8 @@ export default function WebhooksSection() {
     <section>
       <h2 className="text-xl font-bold text-zinc-100">Webhooks</h2>
       <p className="mt-1 text-sm text-zinc-500">
-        Discord-compatible endpoints, notified when a game reaches a report
-        count or is taken down. A game is removed automatically at{" "}
-        {REPORTS_BEFORE_REMOVAL} reports.
+        Discord-compatible endpoints, notified about reports on a game. A game
+        is removed automatically at {REPORTS_BEFORE_REMOVAL} reports.
       </p>
       <AdminGate
         loading={query.isPending && !query.error}
@@ -288,7 +326,7 @@ export default function WebhooksSection() {
               <ul>
                 {query.data.map((hook) => (
                   <WebhookRow
-                    key={`${hook.id}-${hook.thresholds.join()}-${hook.on_removed}`}
+                    key={`${hook.id}-${hook.on_first_report}-${hook.threshold}-${hook.on_removed}`}
                     hook={hook}
                     onSave={(draft) => save(hook, draft)}
                     onTest={async () => {
