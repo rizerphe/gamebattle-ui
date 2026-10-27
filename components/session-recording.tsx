@@ -141,7 +141,7 @@ function useRecordingFrame(sessionId: string, time: number, enabled: boolean) {
   };
 }
 
-/** Plays a session back; the timeline runs to the last event or the furthest of `markers`. */
+/** Plays a session back. The timeline ends with the last recorded event; a marker past it is pinned to the end. */
 export function SessionRecording({
   sessionId,
   startedAt,
@@ -154,9 +154,7 @@ export function SessionRecording({
   className?: string;
 }) {
   const events = useTerminalEvents(sessionId);
-  const span = events.data
-    ? Math.max(0, events.data.at(-1)?.elapsed ?? 0, ...markers.map((marker) => marker.t))
-    : null;
+  const span = events.data ? Math.max(0, events.data.at(-1)?.elapsed ?? 0) : null;
   /** Seconds into the session, or null to follow the end of a live recording. */
   const [chosen, setChosen] = useState<number | null>(null);
   const [playing, setPlaying] = useState(false);
@@ -203,7 +201,7 @@ export function SessionRecording({
               t: event.elapsed,
               label: LABELS[event.type] ?? "Event",
             })),
-            ...markers,
+            ...markers.map((marker) => ({ ...marker, t: Math.min(marker.t, span) })),
           ]}
           playing={playing}
           onPlayingChange={(next) => {
