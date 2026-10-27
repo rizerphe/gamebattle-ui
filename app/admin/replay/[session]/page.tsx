@@ -12,6 +12,8 @@ import {
   reportsSchema,
   sessionSchema,
 } from "@/lib/api";
+import type { z } from "zod";
+import { formatRecordingDuration } from "@/lib/replay";
 import { UUID } from "@/lib/ids";
 import { apiGet } from "@/lib/fetch";
 import { useAuthorProfiles } from "@/lib/use-author-profiles";
@@ -28,6 +30,57 @@ function ReplayFrame({ message }: { message: string }) {
         ← Students
       </Link>
       <p className="px-4 text-sm text-zinc-400">{message}</p>
+    </div>
+  );
+}
+
+const AI_VERDICTS = {
+  enough: { label: "Likely enough", style: "bg-green-950 text-green-300" },
+  unsure: { label: "Unsure", style: "bg-yellow-950 text-yellow-300" },
+  not_enough: { label: "Likely not enough", style: "bg-orange-950 text-orange-300" },
+} as const;
+
+const OVERRIDES = {
+  enough: { label: "Enough", style: "bg-green-950 text-green-300" },
+  unsure: { label: "Unsure", style: "bg-yellow-950 text-yellow-300" },
+  not_enough: { label: "Not enough", style: "bg-orange-950 text-orange-300" },
+  verified_not_enough: { label: "Verified not enough", style: "bg-red-950 text-red-300" },
+} as const;
+
+function FairnessPanel({ session }: { session: z.infer<typeof sessionSchema> }) {
+  const { fairness, fairness_override: override } = session;
+  if (!fairness && !override) return null;
+  const verdict = fairness?.verdict ? AI_VERDICTS[fairness.verdict] : null;
+  return (
+    <div className="flex flex-col gap-1 rounded-lg bg-black bg-opacity-90 px-4 py-3 text-sm">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="font-bold text-zinc-300">AI check</span>
+        {verdict ? (
+          <span className={`rounded px-2 py-0.5 text-xs font-bold ${verdict.style}`}>
+            {verdict.label}
+          </span>
+        ) : fairness ? (
+          <span className="rounded bg-zinc-800 px-2 py-0.5 text-xs font-bold text-zinc-300">
+            Check failed ({fairness.status})
+          </span>
+        ) : (
+          <span className="text-xs text-zinc-500">none</span>
+        )}
+        {fairness?.duration != null ? (
+          <span className="text-xs text-zinc-400">
+            played {formatRecordingDuration(fairness.duration)}
+          </span>
+        ) : null}
+        {override ? (
+          <>
+            <span className="ml-4 font-bold text-zinc-300">Teacher override</span>
+            <span className={`rounded px-2 py-0.5 text-xs font-bold ${OVERRIDES[override].style}`}>
+              {OVERRIDES[override].label}
+            </span>
+          </>
+        ) : null}
+      </div>
+      {fairness?.reason ? <p className="text-zinc-400">{fairness.reason}</p> : null}
     </div>
   );
 }
@@ -96,6 +149,7 @@ export default function ReplayPage({
           {moment.unix(session.started_at).format("MMM D, HH:mm")}
         </div>
       </div>
+      <FairnessPanel session={session} />
       <SessionRecording
         key={session.id}
         sessionId={session.id}

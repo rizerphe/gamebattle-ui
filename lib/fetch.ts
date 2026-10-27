@@ -49,3 +49,25 @@ export async function apiPost<T>(
   if (result === null) throw new Error(fallback);
   return result;
 }
+
+/** A request whose answer does not matter beyond success, such as a PUT or DELETE. */
+export async function apiSend(
+  user: AuthUser,
+  method: "PUT" | "DELETE",
+  path: string,
+  fallback: string,
+  json?: unknown,
+): Promise<void> {
+  const response = await fetch(`${API_ROUTE}${path}`, {
+    method,
+    headers: {
+      ...(json === undefined ? {} : { "Content-Type": "application/json" }),
+      Authorization: `Bearer ${await user.getIdToken()}`,
+    },
+    body: json === undefined ? undefined : JSON.stringify(json),
+  });
+  if (!response.ok) {
+    const body: unknown = await response.json().catch(() => null);
+    throw new Error(detailFromBody(body, fallback));
+  }
+}

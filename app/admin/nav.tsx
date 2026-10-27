@@ -7,6 +7,7 @@ const GLOBAL_ADMIN_TABS = [
   { href: "/admin/settings", label: "Settings" },
   { href: "/admin/students", label: "Students" },
   { href: "/admin/activity", label: "Activity" },
+  { href: "/admin/fairness", label: "Fairness" },
   { href: "/admin/submissions", label: "Submissions" },
 ] as const;
 

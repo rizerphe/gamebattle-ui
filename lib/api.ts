@@ -29,6 +29,17 @@ export const sessionSchema = z.object({
   player: z.string(),
   started_at: z.number(),
   recording_seconds: z.number(),
+  fairness: z
+    .object({
+      status: z.enum(["done", "timeout", "error"]),
+      verdict: z.enum(["enough", "unsure", "not_enough"]).nullable(),
+      reason: z.string().nullable(),
+      duration: z.number().nullable(),
+    })
+    .nullish(),
+  fairness_override: z
+    .enum(["enough", "unsure", "not_enough", "verified_not_enough"])
+    .nullish(),
 });
 
 /** A session as its own player gets it: no game, revision or player ids. */
@@ -134,6 +145,66 @@ export const reportSchema = z.object({
 });
 
 export const reportsSchema = z.array(reportSchema);
+
+export const fairnessStatusSchema = z.object({
+  enabled: z.boolean(),
+  model: z.string().nullable(),
+});
+
+export const fairnessVerdictSchema = z.enum([
+  "enough",
+  "unsure",
+  "not_enough",
+  "verified_not_enough",
+]);
+
+export const fairnessRowSchema = z.object({
+  session_id: z.string(),
+  comparison_id: z.string(),
+  side: z.number(),
+  voter: z.string(),
+  voter_email: z.string().nullable(),
+  game_id: z.string(),
+  game_name: z.string().nullable(),
+  started_at: z.number(),
+  rated_at: z.number().nullable(),
+  rating: z.number(),
+  counted: z.boolean(),
+  confirmed_warning: z.boolean(),
+  duration: z.number().nullable(),
+  status: z.enum(["done", "timeout", "error"]).nullable(),
+  verdict: z.enum(["enough", "unsure", "not_enough"]).nullable(),
+  reason: z.string().nullable(),
+  override: fairnessVerdictSchema.nullable(),
+  effective: fairnessVerdictSchema,
+});
+
+export const fairnessRowsSchema = z.array(fairnessRowSchema);
+
+export const ratedActivitySchema = z.object({
+  comparison_id: z.string(),
+  voter: z.string(),
+  voter_email: z.string().nullable(),
+  started_at: z.number(),
+  rated_at: z.number().nullable(),
+  rating: z.number(),
+  counted: z.boolean(),
+  confirmed_warning: z.boolean(),
+  game_names: z.tuple([z.string().nullable(), z.string().nullable()]),
+});
+
+export const ratedActivitiesSchema = z.array(ratedActivitySchema);
+
+export const hypotheticalEntrySchema = z.object({
+  game_id: z.string(),
+  name: z.string().nullable(),
+  current_score: z.number().nullable(),
+  hypothetical_score: z.number().nullable(),
+  delta: z.number().nullable(),
+  owned_by_excluded: z.boolean(),
+});
+
+export const hypotheticalSchema = z.array(hypotheticalEntrySchema);
 
 export const REPORT_REASON_LABELS: Record<
   z.infer<typeof reportReasonSchema>,
@@ -274,6 +345,10 @@ export type RecordingChunk = z.infer<typeof recordingChunkSchema>;
 export type TerminalEvent = z.infer<typeof terminalEventSchema>;
 export type ReportReason = z.infer<typeof reportReasonSchema>;
 export type Report = z.infer<typeof reportSchema>;
+export type FairnessRow = z.infer<typeof fairnessRowSchema>;
+export type FairnessVerdict = z.infer<typeof fairnessVerdictSchema>;
+export type RatedActivity = z.infer<typeof ratedActivitySchema>;
+export type HypotheticalEntry = z.infer<typeof hypotheticalEntrySchema>;
 export type Ticket = z.infer<typeof ticketSchema>;
 export type PhaseName = z.infer<typeof phaseNameSchema>;
 export type PhaseState = z.infer<typeof phaseStateSchema>;

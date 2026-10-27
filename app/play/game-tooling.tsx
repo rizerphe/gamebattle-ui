@@ -254,6 +254,85 @@ function ReportModal({
   );
 }
 
+const MODAL_STYLE = {
+  content: {
+    top: "50%",
+    left: "50%",
+    right: "auto",
+    bottom: "auto",
+    marginRight: "-50%",
+    transform: "translate(-50%, -50%)",
+    backgroundColor: "#000000",
+    border: "solid 2px #333333",
+    borderRadius: "0.5rem",
+    maxWidth: "32rem",
+  },
+  overlay: { backgroundColor: "rgba(0, 0, 0, 0.75)" },
+};
+
+/** Shown when a game looks under-played. "Give me more time" is the main choice. */
+function RateAnywayModal({
+  isOpen,
+  onClose,
+  onConfirm,
+  submitting,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  submitting: boolean;
+}) {
+  return (
+    <Modal
+      isOpen={isOpen}
+      contentLabel="Rate the game?"
+      style={MODAL_STYLE}
+      onRequestClose={(e) => {
+        onClose();
+        e.stopPropagation();
+      }}
+    >
+      <div className="flex flex-col gap-4 items-stretch">
+        <span className="text-xl font-bold text-center">
+          Hey, are you sure you want to rate the game?
+        </span>
+        <span className="text-center">
+          We&apos;ve noticed you ended at least one of the games suspiciously
+          quickly. Maybe consider giving the game another half a try?
+        </span>
+        <span className="text-center text-zinc-400 text-sm">
+          If a game is broken or won&apos;t let you play, use the report button
+          next to it instead. Otherwise, there&apos;s a restart button - feel
+          free to use it!
+        </span>
+        <div className="flex flex-row justify-stretch rounded overflow-hidden">
+          <button
+            type="button"
+            className="bg-zinc-900 hover:bg-zinc-800 text-white font-bold py-2 px-4 flex-1 border-zinc-800 border-2 disabled:opacity-50"
+            disabled={submitting}
+            onClick={(e) => {
+              e.stopPropagation();
+              onConfirm();
+            }}
+          >
+            {submitting ? "Saving..." : "Yes, rate anyways"}
+          </button>
+          <button
+            type="button"
+            className="bg-green-900 hover:bg-green-800 text-white font-bold py-2 px-4 flex-1 border-green-800 border-2"
+            onClick={(e) => {
+              onClose();
+              e.stopPropagation();
+            }}
+          >
+            Give me more time
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 function NextComparisonButton({
   score,
   loading,
@@ -315,8 +394,10 @@ export function ComparisonSideTooling({
   const [reportOpen, setReportOpen] = useState(false);
   const [reporting, setReporting] = useState(false);
   const [ratingSubmitting, setRatingSubmitting] = useState(false);
+  /** A rating the server asked the player to confirm. */
+  const [pendingScore, setPendingScore] = useState<number | null>(null);
 
-  const submitRating = async (leftScore: number) => {
+  const submitRating = async (leftScore: number, confirmed = false) => {
     if (!user) {
       toast("Sign in to rate");
       return;
@@ -331,13 +412,19 @@ export function ComparisonSideTooling({
             "Content-Type": "application/json",
             Authorization: `Bearer ${await user.getIdToken()}`,
           },
-          body: JSON.stringify({ score: leftScore }),
+          body: JSON.stringify({ score: leftScore, confirmed }),
         },
       );
       if (!response.ok) {
-        toast(await failureDetail(response, "Could not save rating"));
+        const detail = await failureDetail(response.clone(), "Could not save rating");
+        if (response.status === 409 && detail === "rating needs confirmation") {
+          setPendingScore(leftScore);
+          return;
+        }
+        toast(detail);
         return;
       }
+      setPendingScore(null);
       const updated = comparisonSchema.parse(await response.json());
       onComparison(updated);
       if (updated.rating !== null) onScore(updated.rating);
@@ -425,6 +512,14 @@ export function ComparisonSideTooling({
         score={score}
         loading={nextLoading}
         onNext={onNextComparison}
+      />
+      <RateAnywayModal
+        isOpen={pendingScore !== null}
+        onClose={() => setPendingScore(null)}
+        onConfirm={() =>
+          pendingScore !== null && void submitRating(pendingScore, true)
+        }
+        submitting={ratingSubmitting}
       />
       <ReportModal
         isOpen={reportOpen}
