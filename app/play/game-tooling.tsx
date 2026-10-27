@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import {
   comparisonSchema,
   failureDetail,
-  sessionSchema,
+  playerSessionSchema,
   type Comparison,
 } from "../../lib/api";
 
@@ -452,7 +452,7 @@ export default function SessionGameTooling({
         setRestarting(false);
         return;
       }
-      const created = sessionSchema.parse(await response.json());
+      const created = playerSessionSchema.parse(await response.json());
       router.replace(restartHref.replace("{id}", created.id));
     } catch (error) {
       console.error(error);

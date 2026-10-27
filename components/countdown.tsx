@@ -15,7 +15,7 @@ export function nextStart(state: PhaseState) {
   return null;
 }
 
-function format(seconds: number) {
+export function format(seconds: number) {
   const total = Math.max(0, Math.ceil(seconds));
   const days = Math.floor(total / 86_400);
   const clock = [
@@ -28,30 +28,43 @@ function format(seconds: number) {
   return days > 0 ? `${days}d ${clock}` : clock;
 }
 
-export function Countdown({
-  at,
-}: {
-  at: ReturnType<typeof nextStart>;
-}) {
+function useNow() {
   const [now, setNow] = useState(() => Date.now() / 1000);
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now() / 1000), 1000);
     return () => window.clearInterval(timer);
   }, []);
+  return now;
+}
 
-  if (!at) {
-    return (
-      <p className="text-xl text-zinc-400">
-        Preparing. The next phase has not been scheduled yet.
-      </p>
-    );
-  }
+/** Small inline "time remaining" for a unix timestamp. */
+export function TimeLeft({ at }: { at: number }) {
+  const now = useNow();
+  return <span className="font-mono tabular-nums">{format(at - now)} left</span>;
+}
+
+export function Countdown({
+  at,
+}: {
+  at: ReturnType<typeof nextStart>;
+}) {
+  const now = useNow();
+
   return (
-    <div className="flex flex-col gap-1 text-xl text-zinc-400">
-      <span>{at.label} starts in</span>
-      <span className="font-mono text-3xl text-zinc-100">
-        {format(at.at - now)}
-      </span>
+    <div className="flex flex-col items-center gap-4 text-center">
+      <p className="text-lg text-zinc-400">
+        We&apos;re getting things ready behind the scenes.
+      </p>
+      {at ? (
+        <>
+          <span className="font-mono text-7xl font-bold tabular-nums text-zinc-100 md:text-9xl">
+            {format(at.at - now)}
+          </span>
+          <span className="text-sm text-zinc-500">until {at.label.toLowerCase()}</span>
+        </>
+      ) : (
+        <p className="text-zinc-500">The next phase has not been scheduled yet.</p>
+      )}
     </div>
   );
 }

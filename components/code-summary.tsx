@@ -53,14 +53,8 @@ export default function CodeSummary() {
     });
   }, [queryClient, user]);
 
-  const text = !loading && !user ? "Log in to start creating!" : shown;
-  return text ? (
-    <div className="grid h-full place-content-center w-96 max-w-full font-mono">
-      {text}
-    </div>
-  ) : (
-    <div className="grid h-full place-content-center w-96 max-w-full font-mono text-slate-400">
-      thinking...
-    </div>
+  if (!user || !summary || !shown) return null;
+  return (
+    <div className="text-center font-mono text-lg text-zinc-400">{shown}</div>
   );
 }

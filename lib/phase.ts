@@ -25,5 +25,9 @@ export const PHASES: { name: PhaseName; label: string; summary: string }[] = [
 
 export const canEdit = (phase: PhaseName) => phase === "development";
 export const canCompare = (phase: PhaseName) => phase === "competition";
-export const canSeeLeaderboard = (phase: PhaseName) =>
+/** Whether the leaderboard holds real standings yet. */
+export const hasStandings = (phase: PhaseName) =>
   phase === "competition" || phase === "review";
+/** The page itself opens in development too, where it shows a placeholder. */
+export const canSeeLeaderboard = (phase: PhaseName) =>
+  phase === "development" || hasStandings(phase);

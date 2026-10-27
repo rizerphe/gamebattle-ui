@@ -1,5 +1,5 @@
 "use client";
-import { auth, login, logout } from "@/app/firebase";
+import { auth, logout } from "@/app/firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 import Button from "@/components/app-button";
 import { useState } from "react";
@@ -8,9 +8,7 @@ export default function AccountButton() {
   const [user, loading] = useAuthState(auth);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
-  return loading ? (
-    <Button>Loading...</Button>
-  ) : user ? (
+  return loading || !user ? null : (
     <Button onClick={() => setDropdownOpen(!dropdownOpen)}>
       {user?.photoURL && (
         <img
@@ -34,7 +32,5 @@ export default function AccountButton() {
       )}
       <span className="ml-2">{user?.displayName}</span>
     </Button>
-  ) : (
-    <Button onClick={() => login()}>Log In</Button>
   );
 }

@@ -31,6 +31,13 @@ export const sessionSchema = z.object({
   recording_seconds: z.number(),
 });
 
+/** A session as its own player gets it: no game, revision or player ids. */
+export const playerSessionSchema = z.object({
+  id: z.string(),
+  started_at: z.number(),
+  recording_seconds: z.number(),
+});
+
 export const sessionsSchema = z.array(sessionSchema);
 
 export const replayableSchema = z.object({
@@ -182,12 +189,34 @@ export const adminStudentSchema = z.object({
 export const adminStudentsSchema = z.array(adminStudentSchema);
 
 export const leaderboardEntrySchema = z.object({
-  game_id: z.string(),
   name: z.string().nullable(),
   score: z.number(),
+  times_played: z.number(),
+  /** The viewer's own game. Entries carry no ids. */
+  own: z.boolean(),
 });
 
 export const leaderboardSchema = z.array(leaderboardEntrySchema);
+
+/** `GET /stats`: platform totals and the caller's competition progress. */
+export const statsSchema = z.object({
+  platform: z.object({
+    players: z.number(),
+    runs: z.number(),
+    lines: z.number(),
+    largest_game_lines: z.number(),
+  }),
+  /** Null outside the competition and review phases. */
+  competition: z
+    .object({
+      accumulation: z.number(),
+      required_accumulation: z.number(),
+      elo: z.number().nullable(),
+      place: z.number().nullable(),
+      places: z.number(),
+    })
+    .nullable(),
+});
 
 export const playerSchema = z.object({
   id: z.string(),
@@ -236,6 +265,7 @@ export type PhaseState = z.infer<typeof phaseStateSchema>;
 export type Game = z.infer<typeof gameSchema>;
 export type AdminStudent = z.infer<typeof adminStudentSchema>;
 export type LeaderboardEntry = z.infer<typeof leaderboardEntrySchema>;
+export type Stats = z.infer<typeof statsSchema>;
 export type StudentProfile = z.infer<typeof studentSchema>;
 export type SubmittedGame = z.infer<typeof submittedGameSchema>;
 export type SubmissionResult = z.infer<typeof submissionResultSchema>;

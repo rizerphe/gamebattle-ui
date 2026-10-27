@@ -1,47 +1,55 @@
 "use client";
-import { auth } from "../firebase";
-import { useAuthState } from "react-firebase-hooks/auth";
-import { useQuery } from "@tanstack/react-query";
+import { PencilLine, Terminal, Trophy, type LucideIcon } from "lucide-react";
 import { usePhase } from "@/components/permissions";
-import { canSeeLeaderboard } from "@/lib/phase";
-import { leaderboardSchema } from "@/lib/api";
-import { apiGet } from "@/lib/fetch";
-import { gameTitle } from "@/lib/display-name";
+import { hasStandings } from "@/lib/phase";
+import { EntryRow, HeaderRow, Table } from "@/components/leaderboard-rows";
+import { useLeaderboard, useStats } from "@/lib/use-stats";
 
 export default function LeaderboardTable() {
-  const [user, loading] = useAuthState(auth);
   const phase = usePhase();
+  const stats = useStats().data;
+  const leaderboard = useLeaderboard();
 
-  const leaderboardQuery = useQuery({
-    queryKey: ["leaderboard", user?.uid ?? "signed-out"],
-    enabled: !loading && !!phase.data && canSeeLeaderboard(phase.data.phase),
-    queryFn: () =>
-      apiGet(user, "/leaderboard", leaderboardSchema, "Could not load the leaderboard.", 403),
-  });
+  if (!phase.data) return <p className="text-sm text-zinc-500">Loading...</p>;
 
-  const closed =
-    (phase.data && !canSeeLeaderboard(phase.data.phase)) ||
-    leaderboardQuery.data === null;
-  if (closed) {
-    return (
-      <p className="m-4 text-xl text-zinc-400">The leaderboard is closed.</p>
+  if (!hasStandings(phase.data.phase) || leaderboard.data === null) {
+    const p = stats?.platform;
+    const green = (text: string | number) => (
+      <span className="font-bold text-green-400">{text}</span>
     );
-  }
-  if (leaderboardQuery.error) {
-    return (
-      <p className="m-4 text-xl text-zinc-400">{leaderboardQuery.error.message}</p>
-    );
-  }
-
-  return (leaderboardQuery.data ?? []).map((entry) => (
-    <div
-      key={entry.game_id}
-      className="flex flex-row justify-between items-center gap-2 m-4"
-    >
-      <span className="text-2xl font-bold m-2">{gameTitle(entry.name)}</span>
-      <span className="text-xl font-bold m-2">
-        {entry.score.toFixed(0)} <span className="text-green-200">ELO</span>
+    const magenta = (text: string, Icon?: LucideIcon) => (
+      <span className="font-bold text-fuchsia-400">
+        {Icon ? <Icon className="mr-1 inline h-[1em] w-[1em] align-[-0.12em]" /> : null}
+        {text}
       </span>
-    </div>
-  ));
+    );
+    return (
+      <p className="text-xl leading-loose text-zinc-300">
+        We haven&apos;t started competing yet - what leaderboard did you expect?
+        {p ? (
+          <>
+            {" "}
+            All I can say is, {green(`${p.players} people`)} have {magenta("used")}{" "}
+            this platform, {magenta("ran their code", Terminal)} a total of{" "}
+            {green(p.runs)} times, there&apos;s {green(p.lines)} total{" "}
+            {magenta("lines of code", PencilLine)}, out of which{" "}
+            {green(p.largest_game_lines)} in the{" "}
+            {magenta("largest game", Trophy)}.
+          </>
+        ) : null}
+      </p>
+    );
+  }
+  if (leaderboard.error) {
+    return <p className="text-sm text-zinc-400">{leaderboard.error.message}</p>;
+  }
+
+  return (
+    <Table>
+      <HeaderRow />
+      {(leaderboard.data ?? []).map((entry, i) => (
+        <EntryRow key={i} place={i + 1} entry={entry} />
+      ))}
+    </Table>
+  );
 }

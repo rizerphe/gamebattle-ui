@@ -6,7 +6,7 @@ import { useState, useRef } from "react";
 import GameContainer from "./game-container";
 import Game from "./game";
 import SessionGameTooling from "./game-tooling";
-import { sessionSchema } from "@/lib/api";
+import { playerSessionSchema } from "@/lib/api";
 import { apiGet } from "@/lib/fetch";
 
 export function useSession(session_id: string) {
@@ -15,7 +15,7 @@ export function useSession(session_id: string) {
     queryKey: ["session", session_id],
     enabled: !!user,
     queryFn: () =>
-      apiGet(user, `/sessions/${session_id}`, sessionSchema, "Could not load the session."),
+      apiGet(user, `/sessions/${session_id}`, playerSessionSchema, "Could not load the session."),
   });
 }
 

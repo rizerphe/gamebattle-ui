@@ -1,66 +1,93 @@
 "use client";
+import Link from "next/link";
 import { auth, login } from "@/app/firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 import Button from "@/components/app-button";
-import Image from "next/image";
-import { canCompare, canEdit, canSeeLeaderboard } from "@/lib/phase";
+import CodeSummary from "@/components/code-summary";
+import CompetitionInfo from "@/components/home-stats";
+import { canCompare } from "@/lib/phase";
 import { Countdown, nextStart } from "@/components/countdown";
-import { usePhase, usePlayer } from "@/components/permissions";
+import { usePhase } from "@/components/permissions";
 
-function Window({
-  title = "GameBattle",
-  action,
-  children,
-}: {
-  title?: string;
-  action?: React.ReactNode;
-  children: React.ReactNode;
-}) {
+const compact = "px-5 py-4 text-lg";
+
+function Box({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-col flex-[3] items-stretch gap-8 p-8 bg-black bg-opacity-90 min-w-fit">
-      <div className="flex flex-row items-center justify-between gap-4">
-        <span className="font-bold text-4xl flex flex-row items-center justify-start gap-2">
-          <Image src="/logo.png" width={40} height={40} alt="logo" />
-          {title}
-        </span>
-        {action}
-      </div>
-      <div className="flex flex-col flex-1 justify-evenly items-stretch gap-4 text-2xl">
+    <div className="flex w-full max-w-lg flex-col gap-4">
+      <div className="flex flex-col gap-8 rounded-md bg-black bg-opacity-90 p-8 shadow-md shadow-black">
         {children}
       </div>
     </div>
   );
 }
 
+/** A primary action: title and an arrow. */
+function Action({
+  href,
+  title,
+  disabled,
+}: {
+  href: string;
+  title: string;
+  disabled?: boolean;
+}) {
+  const classes =
+    "flex flex-row items-center justify-between rounded border px-6 py-5 text-3xl font-bold";
+  return disabled ? (
+    <div className={`${classes} border-zinc-800 bg-zinc-900 text-zinc-500`}>
+      {title}
+    </div>
+  ) : (
+    <Link
+      href={href}
+      className={`${classes} border-green-800 bg-green-950/50 hover:bg-green-950`}
+    >
+      {title}
+      <span className="text-green-400">-&gt;</span>
+    </Link>
+  );
+}
+
 export default function PlayWindow() {
   const [user, loading] = useAuthState(auth);
   const state = usePhase().data;
-  const phase = state?.phase;
-  const player = usePlayer().data;
-  const admin = player?.admin ?? false;
 
-  const tools = admin ? (
-    <div className="shrink-0 text-base">
-      <Button href="/admin">Admin tools</Button>
-    </div>
-  ) : null;
+  if (state?.phase === "preparation") {
+    return <Countdown at={nextStart(state)} />;
+  }
+  if (loading || !state) return null;
 
-  return loading || user ? (
-    <Window action={user ? tools : null}>
-      {state?.phase === "preparation" ? <Countdown at={nextStart(state)} /> : null}
-      <Button disabled={!phase || !canEdit(phase)} href="/edit">
-        Edit
-      </Button>
-      <Button disabled={!phase || !canCompare(phase)} href="/play">
-        Play
-      </Button>
-      <Button disabled={!phase || !canSeeLeaderboard(phase)} href="/leaderboard">
-        Leaderboard
-      </Button>
-    </Window>
-  ) : (
-    <Window>
-      <Button onClick={() => login()}>Log In with Google</Button>
-    </Window>
+  if (!user) {
+    return (
+      <Box>
+        <Button className={compact} onClick={() => login()}>
+          Log In with Google
+        </Button>
+        <p className="text-center text-base text-zinc-500">
+          Use your school email to log in.
+        </p>
+      </Box>
+    );
+  }
+
+  if (state.phase === "development") {
+    return (
+      <Box>
+        <Action href="/edit" title="Develop" />
+        <CodeSummary />
+        <Link href="/leaderboard" className="text-lg text-teal-400 hover:text-teal-300">
+          Go to leaderboard -&gt;
+        </Link>
+      </Box>
+    );
+  }
+
+  // Competition and review look the same; playing is only possible in competition.
+  const playable = canCompare(state.phase);
+  return (
+    <Box>
+      <Action href="/play" title="Play" disabled={!playable} />
+      <CompetitionInfo />
+    </Box>
   );
 }

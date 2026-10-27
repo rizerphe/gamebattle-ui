@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import Select from "react-select";
 import { redirect } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { gameSchema, sessionSchema, snapshotSchema, type Game } from "../../lib/api";
+import { gameSchema, playerSessionSchema, snapshotSchema, type Game } from "../../lib/api";
 import { usePlayer } from "@/components/permissions";
 
 async function putGameName(
@@ -160,7 +160,7 @@ export default function Builder({
       setRunning(false);
       return;
     }
-    setLaunched(sessionSchema.parse(await response.json()).id);
+    setLaunched(playerSessionSchema.parse(await response.json()).id);
   }
 
   return launched ? (
