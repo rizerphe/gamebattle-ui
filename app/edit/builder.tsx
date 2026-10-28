@@ -247,7 +247,7 @@ export default function Builder({
             role="alert"
             className={`rounded border p-2 text-sm ${
               candidates.length > 0
-                ? "border-amber-700 bg-amber-950/40 text-amber-200"
+                ? "border-zinc-700 bg-transparent text-zinc-500"
                 : "border-red-600 bg-red-950/60 text-red-200"
             }`}
           >
