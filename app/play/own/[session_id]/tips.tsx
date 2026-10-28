@@ -27,8 +27,8 @@ If you're using curses or similar tools:
 - Test your display at different sizes
 
 ### Technical Info for Nerds
-- Your game runs in a Docker container with 40MB of RAM
-- The container is a plain ARM64 python:3.12-alpine image
+- Your game runs in a Docker container limited to 256 MiB of RAM and half a CPU core, with no network access
+- The container is a plain python:3.15-slim image
 - All of your files are stored in /usr/src/app
 - A full tty is connected to your game, and the output is streamed with websockets and displayed with [xterm.js](https://xtermjs.org/)
 - The game output is preserved server-side, allowing for refreshes without losing the game state; but the data stored is limited to 16MB - after that, the game will be killed. This still allows for a solid few minutes of cmatrix, so you shouldn't run into any issues.
