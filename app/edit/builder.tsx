@@ -8,6 +8,7 @@ import { redirect } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { gameSchema, playerSessionSchema, snapshotSchema, type Game } from "../../lib/api";
 import { usePlayer } from "@/components/permissions";
+import { canLaunch, isUnlaunchablePython } from "../../lib/paths";
 
 async function putGameName(
   token: string,
@@ -84,10 +85,11 @@ export default function Builder({
   const name = draftName ?? game?.name ?? "";
 
   const candidates = useMemo(
-    () =>
-      files.filter(
-        (file) => file.path.endsWith(".py") && !file.path.includes(" ")
-      ),
+    () => files.filter((file) => canLaunch(file.path)),
+    [files]
+  );
+  const unlaunchable = useMemo(
+    () => files.filter((file) => isUnlaunchablePython(file.path)),
     [files]
   );
   const entry =
@@ -185,8 +187,14 @@ export default function Builder({
           />
         </div>
         {!isLoading && candidates.length === 0 ? (
-          <span className="text-zinc-400 text-sm">
-            No game files yet. Create or upload a Python file to get started.
+          <span
+            className={`text-sm ${
+              files.length > 0 ? "text-red-400" : "text-zinc-400"
+            }`}
+          >
+            {files.length === 0
+              ? "No game files yet. Create or upload a Python file to get started."
+              : "No Python file can be started yet. Add a main.py, or a .py file whose name has no spaces."}
           </span>
         ) : (
         <div className="flex flex-row items-center gap-2 justify-between">
@@ -234,13 +242,27 @@ export default function Builder({
           />
         </div>
         )}
-        {files.find(
-          (file) => file.path.endsWith(".py") && file.path.includes(" ")
-        ) && (
-          <span className="text-zinc-500 text-sm">
-            Warning: Python files with spaces in their name are not supported as
-            entry points.
-          </span>
+        {unlaunchable.length > 0 && (
+          <div
+            role="alert"
+            className="rounded border border-red-600 bg-red-950/60 p-2 text-sm text-red-200"
+          >
+            <div className="font-bold">
+              {unlaunchable.length === 1
+                ? "This Python file can't be started:"
+                : "These Python files can't be started:"}
+            </div>
+            <ul className="list-disc pl-5 break-all">
+              {unlaunchable.map((file) => (
+                <li key={file.path}>{file.path}</li>
+              ))}
+            </ul>
+            <div className="mt-1">
+              A file with a space in its name can be imported, but never
+              chosen as the entrypoint. Rename it (double-click or right-click
+              it) to run it.
+            </div>
+          </div>
         )}
         {canRunOwn || canRunAdmin ? (
           <>

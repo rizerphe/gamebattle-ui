@@ -8,10 +8,13 @@ import {
   VscNewFolder,
   VscNewFile,
   VscTrash,
+  VscCircleFilled,
   VscCloudUpload,
 } from "react-icons/vsc";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend, NativeTypes } from "react-dnd-html5-backend";
+import { toast } from "sonner";
+import { pathError } from "../../lib/paths";
 
 interface ItemType {
   type: string;
@@ -26,6 +29,8 @@ function File({
   save_file,
   rename_file,
   delete_file,
+  on_save,
+  edited = false,
   depth = 0,
   accept_into_self = false,
   canEdit,
@@ -37,47 +42,64 @@ function File({
   save_file: (path: string, content: string) => void;
   rename_file: (path: string) => void;
   delete_file: () => void;
+  on_save?: () => void;
+  edited?: boolean;
   depth?: number;
   accept_into_self?: boolean;
   canEdit: boolean;
 }) {
-  const [renaming, setRenaming] = useState(
-    name.split("/").slice(-1)[0].length === 0
-  );
-  const [newName, setNewName] = useState(name.split("/").slice(-1)[0]);
+  const baseName = name.split("/").slice(-1)[0];
+  const parent_location = name.split("/").slice(0, -1).join("/");
+  const [renaming, setRenaming] = useState(baseName.length === 0);
+  const [newName, setNewName] = useState(baseName);
+  const [renameError, setRenameError] = useState<string | null>(null);
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
   const renameDone = useRef(false);
   useEffect(() => {
     if (renaming) renameDone.current = false;
   }, [renaming]);
   useEffect(() => {
-    setNewName(name.split("/").slice(-1)[0]);
-    if (!renaming && name.split("/").slice(-1)[0].length === 0) {
+    setNewName(baseName);
+    if (!renaming && baseName.length === 0) {
       delete_file();
     }
   }, [name, renaming]);
+  useEffect(() => {
+    if (!menu) return;
+    const close = () => setMenu(null);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") close();
+    };
+    window.addEventListener("click", close);
+    window.addEventListener("contextmenu", close);
+    window.addEventListener("blur", close);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("click", close);
+      window.removeEventListener("contextmenu", close);
+      window.removeEventListener("blur", close);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [menu]);
   const [, drag] = useDrag(
     () => ({
       type: "file",
-      canDrag: canEdit,
+      canDrag: canEdit && !renaming,
       item: {
         move: (new_folder: string) => {
           rename_file(
-            new_folder
-              ? path.join(new_folder, name.split("/").slice(-1)[0])
-              : name.split("/").slice(-1)[0]
+            new_folder ? path.join(new_folder, baseName) : baseName
           );
         },
       },
     }),
-    [name, canEdit]
+    [name, canEdit, renaming]
   );
   const [, drop] = useDrop(
     () => ({
       accept: "file",
       drop: (item: ItemType) => {
-        item.move(
-          accept_into_self ? name : name.split("/").slice(0, -1).join("/")
-        );
+        item.move(accept_into_self ? name : parent_location);
       },
     }),
     [name]
@@ -88,9 +110,7 @@ function File({
       drop(item: any) {
         if (!canEdit) return;
         for (const file of item.files) {
-          const parent = accept_into_self
-            ? name
-            : name.split("/").slice(0, -1).join("/");
+          const parent = accept_into_self ? name : parent_location;
           const destination = parent ? path.join(parent, file.name) : file.name;
           file.text().then((text: string) => {
             save_file(destination, text);
@@ -101,21 +121,49 @@ function File({
     [name, save_file, canEdit]
   );
 
-  // Enter and clicking away both finish the rename.
-  const finishRename = () => {
-    if (renameDone.current) return;
+  const cancelRename = () => {
     renameDone.current = true;
     setRenaming(false);
+    setRenameError(null);
+    setNewName(baseName);
+    if (baseName.length === 0) delete_file();
+  };
+
+  // Enter and clicking away both finish the rename. A bad name keeps the
+  // input open on Enter, so the reason can be read and the name fixed.
+  const finishRename = (viaBlur: boolean) => {
+    if (renameDone.current) return;
     if (newName.length === 0) {
+      renameDone.current = true;
+      setRenaming(false);
       delete_file();
       return;
     }
-    const current = name.split("/").slice(-1)[0];
-    if (newName === current) return;
-    const parent_location = name.split("/").slice(0, -1).join("/");
-    rename_file(
-      parent_location ? path.join(parent_location, newName) : newName
-    );
+    if (newName === baseName) {
+      cancelRename();
+      return;
+    }
+    const target = parent_location ? path.join(parent_location, newName) : newName;
+    const invalid = pathError(target);
+    if (invalid) {
+      if (viaBlur) {
+        toast.error(invalid);
+        cancelRename();
+      } else {
+        setRenameError(invalid);
+      }
+      return;
+    }
+    renameDone.current = true;
+    setRenaming(false);
+    setRenameError(null);
+    rename_file(target);
+  };
+
+  const startRename = () => {
+    if (!canEdit) return;
+    setMenu(null);
+    setRenaming(true);
   };
 
   return (
@@ -125,38 +173,122 @@ function File({
         active ? "bg-zinc-700" : ""
       }`}
       style={{ paddingLeft: `${depth * 1.5 + 0.5}rem` }}
-      onClick={() => on_file_open(name)}
-      onDoubleClick={() => {
-        if (canEdit) setRenaming(true);
+      onClick={() => {
+        if (!renaming) on_file_open(name);
+      }}
+      onDoubleClick={startRename}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setMenu({ x: e.clientX, y: e.clientY });
       }}
     >
       {icon || <img src={getMaterialFileIcon(name)} alt="" width="16" />}
       {renaming ? (
-        <input
-          type="text"
-          value={newName}
-          className="bg-zinc-700 text-white"
-          onChange={(e) => setNewName(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              finishRename();
-            } else if (e.key === "Escape") {
-              renameDone.current = true;
-              setRenaming(false);
-              setNewName(name.split("/").slice(-1)[0]);
-              if (name.split("/").slice(-1)[0].length === 0) delete_file();
-            }
-          }}
-          onBlur={finishRename}
-          autoFocus
-        />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <input
+            type="text"
+            value={newName}
+            className={`bg-zinc-700 text-white ${
+              renameError ? "outline outline-1 outline-red-500" : ""
+            }`}
+            onChange={(e) => {
+              setNewName(e.target.value);
+              setRenameError(null);
+            }}
+            onClick={(e) => e.stopPropagation()}
+            onDoubleClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                finishRename(false);
+              } else if (e.key === "Escape") {
+                cancelRename();
+              }
+            }}
+            onBlur={() => finishRename(true)}
+            autoFocus
+            onFocus={(e) => {
+              const dot = e.target.value.lastIndexOf(".");
+              e.target.setSelectionRange(0, dot > 0 ? dot : e.target.value.length);
+            }}
+          />
+          {renameError ? (
+            <span className="text-xs text-red-400">{renameError}</span>
+          ) : null}
+        </div>
       ) : (
         <>
-          <span>{name.split("/").slice(-1)[0]}</span>
+          <span className="truncate">{baseName}</span>
+          {edited ? (
+            <VscCircleFilled
+              className="shrink-0 text-xs text-amber-300"
+              title="Unsaved changes"
+              aria-label="Unsaved changes"
+            />
+          ) : null}
           {canEdit ? <DeleteFileButton delete_file={delete_file} /> : null}
         </>
       )}
+      {menu ? (
+        <div
+          role="menu"
+          className="fixed z-50 min-w-36 rounded border border-zinc-600 bg-zinc-900 py-1 text-sm shadow-lg shadow-black"
+          style={{ left: menu.x, top: menu.y }}
+          onClick={(e) => e.stopPropagation()}
+          onContextMenu={(e) => e.preventDefault()}
+        >
+          <MenuItem
+            label="Save"
+            disabled={!canEdit || !on_save}
+            onSelect={() => {
+              setMenu(null);
+              on_save?.();
+            }}
+          />
+          <MenuItem label="Rename" disabled={!canEdit} onSelect={startRename} />
+          <MenuItem
+            label="Delete"
+            disabled={!canEdit}
+            danger
+            onSelect={() => {
+              setMenu(null);
+              delete_file();
+            }}
+          />
+        </div>
+      ) : null}
     </div>
+  );
+}
+
+function MenuItem({
+  label,
+  disabled,
+  danger,
+  onSelect,
+}: {
+  label: string;
+  disabled?: boolean;
+  danger?: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="menuitem"
+      disabled={disabled}
+      className={`block w-full px-3 py-1 text-left ${
+        disabled
+          ? "text-zinc-600 cursor-default"
+          : `hover:bg-zinc-700 ${danger ? "text-red-400" : ""}`
+      }`}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (!disabled) onSelect();
+      }}
+    >
+      {label}
+    </button>
   );
 }
 
@@ -185,6 +317,8 @@ function TreeContent({
   rename_file,
   rename_folder,
   delete_file,
+  edited,
+  save_path,
   depth = 0,
   canEdit,
 }: {
@@ -196,6 +330,8 @@ function TreeContent({
   rename_file: (path: string, new_path: string) => void;
   rename_folder: (path: string, new_path: string) => void;
   delete_file: (path: string) => void;
+  edited: ReadonlySet<string>;
+  save_path: (path: string) => void;
   depth?: number;
   canEdit: boolean;
 }) {
@@ -233,6 +369,8 @@ function TreeContent({
           rename_file={rename_file}
           rename_folder={rename_folder}
           delete_file={delete_file}
+          edited={edited}
+          save_path={save_path}
           depth={depth}
           canEdit={canEdit}
         />
@@ -246,19 +384,9 @@ function TreeContent({
           depth={depth}
           save_file={save_file}
           canEdit={canEdit}
-          rename_file={(new_path: string) => {
-            if (
-              files.filter(
-                (f) => f.path === new_path || f.path.startsWith(new_path + "/")
-              ).length > 0
-            ) {
-              return;
-            }
-            rename_file(file.path, new_path);
-            if (file.path === active_file) {
-              on_file_open(new_path);
-            }
-          }}
+          edited={edited.has(file.path)}
+          on_save={edited.has(file.path) ? () => save_path(file.path) : undefined}
+          rename_file={(new_path: string) => rename_file(file.path, new_path)}
           delete_file={() => delete_file(file.path)}
         />
       ))}
@@ -276,6 +404,8 @@ function Subtree({
   rename_file,
   rename_folder,
   delete_file,
+  edited,
+  save_path,
   depth = 0,
   canEdit,
 }: {
@@ -288,10 +418,14 @@ function Subtree({
   rename_file: (path: string, new_path: string) => void;
   rename_folder: (path: string, new_path: string) => void;
   delete_file: (path: string) => void;
+  edited: ReadonlySet<string>;
+  save_path: (path: string) => void;
   depth?: number;
   canEdit: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const full = location ? path.join(location, name) : name;
+  const folderEdited = Array.from(edited).some((p) => p.startsWith(full + "/"));
   return (
     <>
       <File
@@ -311,6 +445,8 @@ function Subtree({
         }
         depth={depth}
         accept_into_self={true}
+        edited={folderEdited}
+        on_save={folderEdited ? () => save_path(full) : undefined}
         canEdit={canEdit}
       />
       {open && (
@@ -323,6 +459,8 @@ function Subtree({
           rename_file={rename_file}
           rename_folder={rename_folder}
           delete_file={delete_file}
+          edited={edited}
+          save_path={save_path}
           depth={depth + 1}
           canEdit={canEdit}
         />
@@ -339,6 +477,8 @@ function FileBrowserContent({
   rename_file,
   rename_folder,
   delete_file,
+  edited,
+  save_path,
   canEdit,
 }: {
   files: { path: string; content: string | null }[];
@@ -348,6 +488,8 @@ function FileBrowserContent({
   rename_file: (path: string, new_path: string) => void;
   rename_folder: (path: string, new_path: string) => void;
   delete_file: (path: string) => void;
+  edited: ReadonlySet<string>;
+  save_path: (path: string) => void;
   canEdit: boolean;
 }) {
   const [, drop] = useDrop(() => ({
@@ -380,6 +522,8 @@ function FileBrowserContent({
         rename_file={rename_file}
         rename_folder={rename_folder}
         delete_file={delete_file}
+        edited={edited}
+        save_path={save_path}
         canEdit={canEdit}
       />
       {canEdit ? (
@@ -402,23 +546,51 @@ export default function FileBrowser({
   active_file,
   on_file_open,
   save_file,
+  rename_file: move_file,
   delete_file,
+  modified_files = [],
   canEdit,
 }: {
-  files: { path: string; content: string }[];
+  files: { path: string; content: string; saved_content?: string | null }[];
   active_file?: string;
   on_file_open: (path?: string) => void;
   save_file: (path: string, content: string) => boolean | Promise<boolean>;
+  /** Moves a file, keeping its content and unsaved edits. */
+  rename_file?: (path: string, new_path: string) => boolean | Promise<boolean>;
   delete_file: (path: string) => void;
+  /** Editor buffers with changes that are newer than `files`. */
+  modified_files?: { path: string; content: string }[];
   canEdit: boolean;
 }) {
   const [created_folders, setCreatedFolders] = useState<string[]>([]);
   const [created_files, setCreatedFiles] = useState<string[]>([]);
+
+  // Files with changes that are not saved yet, either in the editor or as a
+  // draft on the server.
+  const content_of = new Map<string, string>();
+  const edited = new Set<string>();
+  for (const file of files) {
+    content_of.set(file.path, file.content);
+    if (file.saved_content !== undefined && file.content !== file.saved_content) {
+      edited.add(file.path);
+    }
+  }
+  for (const file of modified_files) {
+    if (file.path === "") continue;
+    content_of.set(file.path, file.content);
+    edited.add(file.path);
+  }
+  const save_path = (target: string) => {
+    for (const file_path of Array.from(edited)) {
+      if (file_path === target || file_path.startsWith(target + "/")) {
+        void save_file(file_path, content_of.get(file_path) ?? "");
+      }
+    }
+  };
+
   const rename_file = (original: string, newName: string) => {
     const pending = created_files.includes(original);
-    const file =
-      files.find((file) => file.path === original) ??
-      (pending ? { path: original, content: "" } : undefined);
+    const exists = files.some((file) => file.path === original);
     const target_exists =
       files.find(
         (file) =>
@@ -428,19 +600,31 @@ export default function FileBrowser({
       ) ||
       created_folders.includes(newName) ||
       created_files.includes(newName);
-    if (!file || target_exists) return;
-    if (pending) {
-      setCreatedFiles(
-        created_files.map((path) => (path === original ? newName : path))
-      );
+    if (target_exists) {
+      toast.error("A file with that name already exists.");
+      return;
     }
-    void Promise.resolve(save_file(newName, file.content)).then((saved) => {
-      if (!saved) return;
-      if (pending) {
-        setCreatedFiles((paths) => paths.filter((path) => path !== newName));
-        return;
+    if (!exists && !pending) return;
+    if (!move_file) {
+      // No rename support: fall back to writing the new name by hand.
+      const text = content_of.get(original) ?? "";
+      void Promise.resolve(save_file(newName, text)).then((saved) => {
+        if (!saved) return;
+        if (pending) {
+          setCreatedFiles((paths) => paths.filter((p) => p !== newName));
+        } else {
+          delete_file(original);
+        }
+      });
+      return;
+    }
+    if (pending) {
+      setCreatedFiles((paths) => paths.map((p) => (p === original ? newName : p)));
+    }
+    void Promise.resolve(move_file(original, newName)).then((moved) => {
+      if (moved && pending) {
+        setCreatedFiles((paths) => paths.filter((p) => p !== newName));
       }
-      delete_file(original);
     });
   };
   const rename_folder = (original: string, newName: string) => {
@@ -459,6 +643,7 @@ export default function FileBrowser({
     const files_in_folder = files.filter((file) =>
       file.path.startsWith(original + "/")
     );
+    // One at a time: each move is checked against the files as they are then.
     files_in_folder.forEach((file) => {
       rename_file(
         file.path,
@@ -523,6 +708,8 @@ export default function FileBrowser({
         rename_file={rename_file}
         rename_folder={rename_folder}
         delete_file={delete_file_full}
+        edited={edited}
+        save_path={save_path}
         canEdit={canEdit}
       />
     </DndProvider>

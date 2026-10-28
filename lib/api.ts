@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { canLaunch } from "./paths";
 
 const fileDraftSchema = z.object({
   content: z.string().nullable(),
@@ -413,7 +414,7 @@ export function editorFiles(snapshot: Snapshot): EditorFile[] {
 export function entrypointOf(files: EditorFile[]): string | null {
   const saved = files.filter((file) => file.saved_content !== null).map((file) => file.path);
   if (saved.includes("main.py")) return "main.py";
-  const python = saved.filter((path) => path.endsWith(".py") && !path.includes(" "));
+  const python = saved.filter(canLaunch);
   return python.length === 1 ? python[0] : null;
 }
 

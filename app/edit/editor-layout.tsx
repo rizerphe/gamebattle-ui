@@ -19,6 +19,7 @@ import {
 } from "../../lib/api";
 import { usePhase } from "@/components/permissions";
 import { canEdit as phaseAllowsEditing } from "@/lib/phase";
+import { isValidPath, pathError } from "../../lib/paths";
 
 const MAX_FILE_BYTES = 1024 * 1024;
 const MAX_FILES = 64;
@@ -37,20 +38,7 @@ const FILE_ERRORS: Record<string, string> = {
 };
 
 function isAllowedPath(path: string): boolean {
-  if (
-    !path ||
-    !/^[\x20-\x7E]*$/.test(path) ||
-    path.startsWith("/") ||
-    path.includes("\\")
-  ) {
-    return false;
-  }
-  return path
-    .split("/")
-    .every(
-      (part) =>
-        part !== "" && part !== "." && part !== ".." && part === part.replace(/^ +| +$/g, ""),
-    );
+  return isValidPath(path);
 }
 
 function sameFile(left: GameFile, right: GameFile): boolean {
@@ -275,7 +263,7 @@ export default function EditorLayout({
       return false;
     }
     if (file.path && !isAllowedPath(file.path)) {
-      toast.error("Invalid file name");
+      toast.error(pathError(file.path) ?? "Invalid file name");
       return false;
     }
     const pieces = [file.saved_content, file.draft?.content ?? null];
@@ -398,7 +386,7 @@ export default function EditorLayout({
       return false;
     }
     if (path && !isAllowedPath(path)) {
-      toast.error("Invalid file name");
+      toast.error(pathError(path) ?? "Invalid file name");
       return false;
     }
     const current = queryClient.getQueryData<Snapshot>(snapshotKey);
@@ -465,6 +453,78 @@ export default function EditorLayout({
     });
   };
 
+  // Move a file, keeping its saved text and any unsaved edits (an edited file
+  // stays edited). A file that only exists in the browser, still being named,
+  // is saved under its new name instead.
+  const rename_file = async (from: string, to: string): Promise<boolean> => {
+    if (from === to) return true;
+    const invalid = pathError(to);
+    if (invalid) {
+      toast.error(invalid);
+      return false;
+    }
+    const snap = queryClient.getQueryData<Snapshot>(snapshotKeyRef.current);
+    if (!snap) return false;
+    if (
+      snap.files.some(
+        (file) =>
+          file.path === to ||
+          file.path.startsWith(to + "/") ||
+          to.startsWith(file.path + "/")
+      )
+    ) {
+      toast.error("A file with that name already exists.");
+      return false;
+    }
+    const stored = snap.files.find((file) => file.path === from);
+    const local = modifiedRef.current.find((file) => file.path === from);
+    const text =
+      local?.content ?? stored?.draft?.content ?? stored?.saved_content ?? "";
+    const target: GameFile = stored
+      ? {
+          path: to,
+          saved_content: stored.saved_content,
+          draft:
+            text !== stored.saved_content ? { content: text } : null,
+        }
+      : { path: to, saved_content: text, draft: null };
+
+    for (const path of [from, to]) {
+      const timer = timers.current.get(path);
+      if (timer !== undefined) {
+        window.clearTimeout(timer);
+        timers.current.delete(path);
+      }
+      suppressed.current.delete(path);
+      pending.current.add(path);
+    }
+    setModifiedFiles((items) => items.filter((file) => file.path !== from));
+    return new Promise<boolean>((resolve) => {
+      enqueue(async () => {
+        const wrote = await commitRef.current(target);
+        if (wrote) {
+          setActiveFile((current) => (current === from ? to : current));
+          if (stored) {
+            await commitRef.current({
+              path: from,
+              saved_content: null,
+              draft: null,
+            });
+          }
+        } else if (local) {
+          setModifiedFiles((items) =>
+            items.some((file) => file.path === from)
+              ? items
+              : [...items, local]
+          );
+        }
+        pending.current.delete(from);
+        pending.current.delete(to);
+        resolve(wrote);
+      });
+    });
+  };
+
   return (
     <div
       className={
@@ -501,7 +561,9 @@ export default function EditorLayout({
             active_file={active_file}
             on_file_open={setActiveFile}
             save_file={save_file}
+            rename_file={rename_file}
             delete_file={delete_file}
+            modified_files={modified_files}
             canEdit={canEdit}
           />
         </div>
