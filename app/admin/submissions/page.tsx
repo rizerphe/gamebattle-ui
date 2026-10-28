@@ -55,6 +55,7 @@ export default function SubmissionsPage() {
         which account it is. After that the game belongs to that account&apos;s
         id.
       </p>
+      <ArchiveExample />
       <form
         className="mt-8 flex flex-col gap-4"
         onSubmit={(event) => {
@@ -78,6 +79,80 @@ export default function SubmissionsPage() {
       </form>
       {error ? <p className="mt-8 text-sm text-red-300">{error}</p> : null}
       {result ? <Result result={result} /> : null}
+    </div>
+  );
+}
+
+const EXAMPLE_TREE = `archive.zip
+├── manifest.json
+└── games/
+    ├── 0/
+    │   ├── cicada.py
+    │   └── data
+    └── 1/
+        └── main.py`;
+
+const EXAMPLE_MANIFEST = `{
+  "version": 1,
+  "games": [
+    {
+      "email": "student@ucu.edu.ua",
+      "name": "Cicada",
+      "files": [
+        { "path": "cicada.py", "sha256": "<64 hex chars>" },
+        { "path": "data", "sha256": "<64 hex chars>" }
+      ]
+    },
+    {
+      "email": "other@ucu.edu.ua",
+      "name": "Second game",
+      "files": [
+        { "path": "main.py", "sha256": "<64 hex chars>" }
+      ]
+    }
+  ]
+}`;
+
+function ArchiveExample() {
+  return (
+    <div className="mt-8 rounded border border-zinc-800 p-4">
+      <h2 className="text-sm font-bold text-zinc-100">Archive layout</h2>
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <pre className="overflow-x-auto rounded bg-zinc-900 p-3 text-xs text-zinc-300">
+          {EXAMPLE_TREE}
+        </pre>
+        <pre className="overflow-x-auto rounded bg-zinc-900 p-3 text-xs text-zinc-300">
+          {EXAMPLE_MANIFEST}
+        </pre>
+      </div>
+      <ul className="mt-4 list-disc space-y-1 pl-5 text-sm text-zinc-400">
+        <li>
+          <code>manifest.json</code> lists every game, in order. Game{" "}
+          <code>n</code> in the list has its files under{" "}
+          <code>games/n/</code>, starting at 0.
+        </li>
+        <li>
+          Each file&apos;s <code>path</code> is relative to its game folder, and{" "}
+          <code>sha256</code> is the hex digest of its bytes. Any missing file,
+          extra file, or hash mismatch rejects the whole archive and nothing is
+          written.
+        </li>
+        <li>
+          The entrypoint is <code>main.py</code>, or the only <code>.py</code>{" "}
+          file without a space in its path.
+        </li>
+        <li>
+          On upload, each <code>email</code> is looked up in Firebase. A match
+          makes that account the game&apos;s owner; otherwise the game is
+          imported under a new id and listed as not linked. Every game is then
+          submitted and published at once.
+        </li>
+        <li>
+          Limits: 1 MiB per file, 64 files and 12 MiB per game, 64 MiB for the
+          zip. Names are 1–80 characters, and emails differing only by case are
+          duplicates.
+        </li>
+      </ul>
     </div>
   );
 }
