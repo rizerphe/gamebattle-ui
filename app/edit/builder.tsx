@@ -245,7 +245,11 @@ export default function Builder({
         {unlaunchable.length > 0 && (
           <div
             role="alert"
-            className="rounded border border-red-600 bg-red-950/60 p-2 text-sm text-red-200"
+            className={`rounded border p-2 text-sm ${
+              candidates.length > 0
+                ? "border-amber-700 bg-amber-950/40 text-amber-200"
+                : "border-red-600 bg-red-950/60 text-red-200"
+            }`}
           >
             <div className="font-bold">
               {unlaunchable.length === 1
