@@ -23,8 +23,14 @@ const EVENTS: { event: Webhook["event"]; label: string }[] = [
   { event: "every_report", label: "Every report" },
   { event: "first_report", label: "First report" },
   { event: "threshold", label: "N reports reached" },
+  { event: "every_credible", label: "Every credible* report" },
+  { event: "first_credible", label: "First credible* report" },
+  { event: "credible_threshold", label: "N credible* reports reached" },
   { event: "removed", label: "Game automatically removed" },
 ];
+
+const takesCount = (event: Webhook["event"]) =>
+  event === "threshold" || event === "credible_threshold";
 
 /** Webhook URLs carry a secret token, so only the host is shown. */
 function hostOf(url: string): string {
@@ -61,8 +67,7 @@ function Triggers({
             onClick={() =>
               onChange({
                 event,
-                threshold:
-                  event === "threshold" ? (value.threshold ?? 3) : null,
+                threshold: takesCount(event) ? (value.threshold ?? 3) : null,
               })
             }
             className={`rounded border px-3 py-1.5 text-sm ${
@@ -75,7 +80,7 @@ function Triggers({
           </button>
         );
       })}
-      {value.event === "threshold" ? (
+      {takesCount(value.event) ? (
         <Input
           type="number"
           aria-label="Report count"
@@ -269,7 +274,11 @@ export default function WebhooksSection() {
       <h2 className="text-xl font-bold text-zinc-100">Webhooks</h2>
       <p className="mt-1 text-sm text-zinc-500">
         Discord-compatible endpoints, each sent one kind of message. A game is
-        removed automatically at {REPORTS_BEFORE_REMOVAL} reports.
+        removed automatically at {REPORTS_BEFORE_REMOVAL} credible* reports.
+      </p>
+      <p className="mt-1 text-xs text-zinc-500">
+        *credible - as evaluated by an LLM. Without an LLM, every report counts
+        as credible.
       </p>
       <AdminGate
         loading={query.isPending && !query.error}

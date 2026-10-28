@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "@/app/firebase";
 import { AdminGate } from "@/components/auth-gate";
-import { ReasonBadge } from "@/components/reason-badge";
+import { CredibilityBadge, ReasonBadge } from "@/components/reason-badge";
 import { SessionRecording } from "@/components/session-recording";
 import { StudentChip } from "@/components/student-chip";
 import { useAuthorProfiles } from "@/lib/use-author-profiles";
@@ -118,6 +118,7 @@ function ReportsContent() {
                       />
                       <span className="mt-1 flex flex-wrap items-center gap-1.5">
                         <ReasonBadge reason={item.short_reason} />
+                        <CredibilityBadge credibility={item.credibility} />
                         <span className="text-[11px] text-zinc-500">
                           {moment.unix(item.timestamp).format("MMM D, HH:mm")}
                         </span>
@@ -129,6 +130,13 @@ function ReportsContent() {
             </aside>
             {report ? (
               <article className="flex min-h-0 min-w-0 flex-col overflow-hidden">
+                <div className="mb-2 flex shrink-0 flex-wrap items-center gap-2 bg-black px-3 py-2 text-sm">
+                  <ReasonBadge reason={report.short_reason} />
+                  <CredibilityBadge credibility={report.credibility} />
+                  {report.credibility?.reason ? (
+                    <span className="text-zinc-400">{report.credibility.reason}</span>
+                  ) : null}
+                </div>
                 <div
                   className={`grid min-h-0 flex-1 grid-cols-1 gap-2 overflow-hidden ${
                     writtenReason

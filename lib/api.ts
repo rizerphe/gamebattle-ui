@@ -136,12 +136,19 @@ export const terminalEventsSchema = z.array(terminalEventSchema);
 
 export const reportReasonSchema = z.enum(["unclear", "buggy", "other"]);
 
+export const credibilitySchema = z.object({
+  status: z.enum(["pending", "done", "timeout", "error"]),
+  credible: z.boolean().nullish(),
+  reason: z.string().nullish(),
+});
+
 export const reportSchema = z.object({
   id: z.string(),
   session: sessionSchema,
   short_reason: reportReasonSchema,
   reason: z.string(),
   timestamp: z.number(),
+  credibility: credibilitySchema.nullish(),
 });
 
 export const reportsSchema = z.array(reportSchema);
@@ -242,8 +249,16 @@ export const REPORTS_BEFORE_REMOVAL = 5;
 export const webhookSchema = z.object({
   id: z.string(),
   url: z.string(),
-  event: z.enum(["every_report", "first_report", "threshold", "removed"]),
-  /** The report count, for the "threshold" event; otherwise null. */
+  event: z.enum([
+    "every_report",
+    "first_report",
+    "threshold",
+    "every_credible",
+    "first_credible",
+    "credible_threshold",
+    "removed",
+  ]),
+  /** The report count, for the "threshold" and "credible_threshold" events; otherwise null. */
   threshold: z.number().nullable(),
   created_at: z.number(),
 });

@@ -20,7 +20,7 @@ import { replayableFromSession, replayableFromSide } from "@/lib/replay";
 import { apiGet } from "@/lib/fetch";
 import ReplayLink from "@/components/replay-link";
 import { AdminGate } from "@/components/auth-gate";
-import { ReasonBadge } from "@/components/reason-badge";
+import { CredibilityBadge, ReasonBadge } from "@/components/reason-badge";
 import { StudentChip } from "@/components/student-chip";
 import { useAuthorProfiles } from "@/lib/use-author-profiles";
 
@@ -284,6 +284,7 @@ function ReportActivityCard({
           name={null}
         />
         <ReasonBadge reason={report.short_reason} />
+        <CredibilityBadge credibility={report.credibility} />
         <Link
           href={`/admin/students/${gameId}/reports?report=${report.id}`}
           className="text-xs text-green-300 hover:underline"
