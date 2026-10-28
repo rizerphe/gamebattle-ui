@@ -406,6 +406,17 @@ export function editorFiles(snapshot: Snapshot): EditorFile[] {
   });
 }
 
+/**
+ * The file a game starts from, by the server's rule: `main.py`, otherwise the
+ * only saved `.py` file with no space in its path. Null when there is none.
+ */
+export function entrypointOf(files: EditorFile[]): string | null {
+  const saved = files.filter((file) => file.saved_content !== null).map((file) => file.path);
+  if (saved.includes("main.py")) return "main.py";
+  const python = saved.filter((path) => path.endsWith(".py") && !path.includes(" "));
+  return python.length === 1 ? python[0] : null;
+}
+
 export function unsavedFiles(
   snapshot: Snapshot
 ): { path: string; content: string }[] {

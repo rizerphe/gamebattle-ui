@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   editorFiles,
+  entrypointOf,
   snapshotSchema,
   unsavedFiles,
   type GameFile,
@@ -38,14 +39,18 @@ const FILE_ERRORS: Record<string, string> = {
 function isAllowedPath(path: string): boolean {
   if (
     !path ||
-    !/^[\x00-\x7F]*$/.test(path) ||
-    path.includes(" ") ||
+    !/^[\x20-\x7E]*$/.test(path) ||
     path.startsWith("/") ||
     path.includes("\\")
   ) {
     return false;
   }
-  return path.split("/").every((part) => part !== "" && part !== "." && part !== "..");
+  return path
+    .split("/")
+    .every(
+      (part) =>
+        part !== "" && part !== "." && part !== ".." && part === part.replace(/^ +| +$/g, ""),
+    );
 }
 
 function sameFile(left: GameFile, right: GameFile): boolean {
@@ -232,11 +237,8 @@ export default function EditorLayout({
     setActiveFile((current) => {
       if (current) return current;
       if (unsaved.length > 0) return unsaved[0].path;
-      const visible = editorFiles(snapshot);
-      if (visible.length === 1 && visible[0].path.endsWith(".py")) {
-        return visible[0].path;
-      }
-      return current;
+      const entry = entrypointOf(editorFiles(snapshot));
+      return entry ?? current;
     });
   }, [snapshot, draftsReady]);
 

@@ -93,9 +93,11 @@ export default function Builder({
   const entry =
     entrypoint && files.some((file) => file.path === entrypoint)
       ? entrypoint
-      : candidates.length === 1
-        ? candidates[0].path
-        : "";
+      : candidates.some((file) => file.path === "main.py")
+        ? "main.py"
+        : candidates.length === 1
+          ? candidates[0].path
+          : "";
 
   const runBlocked =
     modified_files.length > 0 ||

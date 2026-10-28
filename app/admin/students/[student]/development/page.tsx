@@ -7,6 +7,7 @@ import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "../../../../firebase";
 import {
   editorFiles,
+  entrypointOf,
   failureDetail,
   snapshotSchema,
   snapshotsSchema,
@@ -396,6 +397,7 @@ export default function StudentDevelopmentPage() {
     chosenFile && historicalFiles.some((file) => file.path === chosenFile)
       ? chosenFile
       : (historicalFiles.find((file) => file.content !== file.saved_content)?.path ??
+        entrypointOf(historicalFiles) ??
         historicalFiles.find((file) => file.path.endsWith(".py"))?.path ??
         historicalFiles[0]?.path);
 

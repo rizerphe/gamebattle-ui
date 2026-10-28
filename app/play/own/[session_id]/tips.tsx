@@ -18,7 +18,7 @@ This isn't just for show - during the competition, players will be running two g
 To keep the platform running, we have some limitations to what you can do with your files:
 - Each file can be up to 1MB
 - There can be up to 64 files in your game
-- Filenames are ASCII only and cannot contain spaces
+- Filenames are ASCII only. Spaces are fine, except in the file your game starts from
 
 ### Using Display Libraries?
 If you're using curses or similar tools:
